@@ -1,0 +1,723 @@
+<!doctype html>
+<html lang="de-CH">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>SmartBudgetAI - Dein digitaler Budget Coach</title>
+    <style>
+      * {
+        margin: 0;
+        padding: 0;
+        box-sizing: border-box;
+      }
+
+      :root {
+        --primary-color: #2563eb;
+        --primary-hover: #1d4ed8;
+        --text-dark: #1f2937;
+        --text-medium: #4b5563;
+        --text-light: #6b7280;
+        --bg-light: #f9fafb;
+        --bg-white: #ffffff;
+        --border-color: #e5e7eb;
+        --success-color: #10b981;
+        --shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
+        --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+        --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.1);
+      }
+
+      body {
+        font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+        line-height: 1.6;
+        color: var(--text-dark);
+        background-color: var(--bg-white);
+      }
+
+      .container {
+        max-width: 1200px;
+        margin: 0 auto;
+        padding: 0 20px;
+      }
+
+      header {
+        background-color: var(--bg-white);
+        box-shadow: var(--shadow-sm);
+        position: sticky;
+        top: 0;
+        z-index: 100;
+      }
+
+      .header-content {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding: 20px 0;
+      }
+
+      .logo {
+        font-size: 24px;
+        font-weight: 700;
+        color: var(--primary-color);
+      }
+
+      nav ul {
+        list-style: none;
+        display: flex;
+        gap: 32px;
+      }
+
+      nav a {
+        text-decoration: none;
+        color: var(--text-medium);
+        font-weight: 500;
+        transition: color 0.3s ease;
+      }
+
+      nav a:hover {
+        color: var(--primary-color);
+      }
+
+      section {
+        padding: 80px 0;
+      }
+
+      .hero {
+        background: linear-gradient(135deg, #f0f9ff 0%, #e0f2fe 100%);
+        text-align: center;
+      }
+
+      .hero h1 {
+        font-size: 48px;
+        font-weight: 800;
+        color: var(--text-dark);
+        margin-bottom: 24px;
+        line-height: 1.2;
+      }
+
+      .hero .subheadline {
+        font-size: 22px;
+        color: var(--text-medium);
+        margin-bottom: 32px;
+        max-width: 800px;
+        margin-left: auto;
+        margin-right: auto;
+        line-height: 1.5;
+      }
+
+      .hero .description {
+        font-size: 16px;
+        color: var(--text-light);
+        max-width: 700px;
+        margin: 0 auto;
+        line-height: 1.7;
+      }
+
+      .how-it-works {
+        background-color: var(--bg-white);
+      }
+
+      .section-title {
+        font-size: 36px;
+        font-weight: 700;
+        text-align: center;
+        margin-bottom: 60px;
+        color: var(--text-dark);
+      }
+
+      .steps {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+        gap: 40px;
+      }
+
+      .step-card {
+        background-color: var(--bg-white);
+        border: 1px solid var(--border-color);
+        border-radius: 12px;
+        padding: 32px;
+        box-shadow: var(--shadow-md);
+        transition: transform 0.3s ease, box-shadow 0.3s ease;
+      }
+
+      .step-card:hover {
+        transform: translateY(-4px);
+        box-shadow: var(--shadow-lg);
+      }
+
+      .step-icon {
+        width: 56px;
+        height: 56px;
+        background-color: var(--primary-color);
+        border-radius: 12px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        margin-bottom: 20px;
+      }
+
+      .step-icon svg {
+        width: 28px;
+        height: 28px;
+        color: white;
+      }
+
+      .step-number {
+        display: inline-block;
+        width: 32px;
+        height: 32px;
+        background-color: var(--primary-color);
+        color: white;
+        border-radius: 50%;
+        text-align: center;
+        line-height: 32px;
+        font-weight: 700;
+        margin-bottom: 16px;
+      }
+
+      .step-card h3 {
+        font-size: 22px;
+        font-weight: 700;
+        margin-bottom: 12px;
+        color: var(--text-dark);
+      }
+
+      .step-card p {
+        color: var(--text-medium);
+        line-height: 1.7;
+      }
+
+      .prototype {
+        background-color: var(--bg-light);
+      }
+
+      .prototype-intro {
+        text-align: center;
+        max-width: 700px;
+        margin: 0 auto 48px;
+        color: var(--text-medium);
+        line-height: 1.7;
+      }
+
+      .prototype-container {
+        max-width: 800px;
+        margin: 0 auto;
+        background-color: var(--bg-white);
+        border-radius: 16px;
+        padding: 40px;
+        box-shadow: var(--shadow-lg);
+      }
+
+      .form-group {
+        margin-bottom: 24px;
+      }
+
+      label {
+        display: block;
+        font-weight: 600;
+        margin-bottom: 8px;
+        color: var(--text-dark);
+      }
+
+      input[type="number"],
+      input[type="text"],
+      textarea {
+        width: 100%;
+        padding: 12px 16px;
+        border: 1px solid var(--border-color);
+        border-radius: 8px;
+        font-size: 16px;
+        transition: border-color 0.3s ease, box-shadow 0.3s ease;
+      }
+
+      input:focus,
+      textarea:focus {
+        outline: none;
+        border-color: var(--primary-color);
+        box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1);
+      }
+
+      textarea {
+        resize: vertical;
+        min-height: 80px;
+      }
+
+      .submit-btn {
+        width: 100%;
+        padding: 16px 32px;
+        background-color: var(--primary-color);
+        color: white;
+        border: none;
+        border-radius: 8px;
+        font-size: 18px;
+        font-weight: 600;
+        cursor: pointer;
+        transition: background-color 0.3s ease, transform 0.2s ease;
+      }
+
+      .submit-btn:hover {
+        background-color: var(--primary-hover);
+        transform: translateY(-2px);
+      }
+
+      .submit-btn:active {
+        transform: translateY(0);
+      }
+
+      .chat-history {
+        margin-top: 40px;
+        padding-top: 32px;
+        border-top: 2px solid var(--border-color);
+      }
+
+      .chat-history.hidden {
+        display: none;
+      }
+
+      .chat-message {
+        margin-bottom: 24px;
+        animation: fadeIn 0.5s ease;
+      }
+
+      @keyframes fadeIn {
+        from {
+          opacity: 0;
+          transform: translateY(10px);
+        }
+        to {
+          opacity: 1;
+          transform: translateY(0);
+        }
+      }
+
+      .message-user {
+        display: flex;
+        justify-content: flex-end;
+      }
+
+      .message-ai {
+        display: flex;
+        justify-content: flex-start;
+      }
+
+      .message-bubble {
+        max-width: 80%;
+        padding: 16px 20px;
+        border-radius: 16px;
+        position: relative;
+      }
+
+      .message-user .message-bubble {
+        background-color: var(--primary-color);
+        color: white;
+        border-bottom-right-radius: 4px;
+      }
+
+      .message-ai .message-bubble {
+        background-color: var(--bg-light);
+        color: var(--text-dark);
+        border-bottom-left-radius: 4px;
+        border: 1px solid var(--border-color);
+      }
+
+      .message-label {
+        font-weight: 700;
+        font-size: 14px;
+        margin-bottom: 8px;
+      }
+
+      .message-user .message-label {
+        color: rgba(255, 255, 255, 0.9);
+      }
+
+      .message-ai .message-label {
+        color: var(--primary-color);
+      }
+
+      .message-content {
+        line-height: 1.6;
+      }
+
+      .message-ai .category {
+        display: inline-block;
+        background-color: var(--primary-color);
+        color: white;
+        padding: 4px 12px;
+        border-radius: 12px;
+        font-size: 14px;
+        font-weight: 600;
+        margin: 8px 0;
+      }
+
+      .message-ai .tips {
+        margin-top: 12px;
+        padding-top: 12px;
+        border-top: 1px solid var(--border-color);
+      }
+
+      .message-ai .tips strong {
+        color: var(--success-color);
+      }
+
+      footer {
+        background-color: var(--text-dark);
+        color: var(--bg-light);
+        text-align: center;
+        padding: 40px 20px;
+      }
+
+      footer p {
+        max-width: 800px;
+        margin: 0 auto;
+        line-height: 1.7;
+        opacity: 0.9;
+      }
+
+      @media (max-width: 768px) {
+        .hero h1 {
+          font-size: 32px;
+        }
+
+        .hero .subheadline {
+          font-size: 18px;
+        }
+
+        nav ul {
+          gap: 16px;
+        }
+
+        nav a {
+          font-size: 14px;
+        }
+
+        section {
+          padding: 60px 0;
+        }
+
+        .section-title {
+          font-size: 28px;
+          margin-bottom: 40px;
+        }
+
+        .steps {
+          grid-template-columns: 1fr;
+          gap: 24px;
+        }
+
+        .prototype-container {
+          padding: 24px;
+        }
+
+        .message-bubble {
+          max-width: 90%;
+        }
+      }
+    </style>
+    <meta property="og:image" content="https://bolt.new/static/og_default.png">
+    <meta name="twitter:card" content="summary_large_image">
+    <meta name="twitter:image" content="https://bolt.new/static/og_default.png">
+</head>
+  <body>
+    <header>
+      <div class="container">
+        <div class="header-content">
+          <div class="logo">SmartBudgetAI</div>
+          <nav>
+            <ul>
+              <li><a href="#uebersicht">Uebersicht</a></li>
+              <li><a href="#wie-es-funktioniert">Wie es funktioniert</a></li>
+              <li><a href="#prototyp-testen">Prototyp testen</a></li>
+            </ul>
+          </nav>
+        </div>
+      </div>
+    </header>
+
+    <main>
+      <section id="uebersicht" class="hero">
+        <div class="container">
+          <h1>Dein digitaler Budget Coach für den Alltag</h1>
+          <p class="subheadline">
+            SmartBudgetAI hilft dir, deine Ausgaben zu verstehen, dein Budget im Blick zu behalten
+            und Schritt für Schritt mehr finanzielle Freiheit zu gewinnen.
+          </p>
+          <p class="description">
+            In Zukunft nutzen wir Open Banking, um uns sicher mit deinen Bankkonten zu verbinden.
+            Im aktuellen Prototyp gibst du deine Einkäufe manuell ein, um zu sehen, wie SmartBudgetAI reagiert.
+          </p>
+        </div>
+      </section>
+
+      <section id="wie-es-funktioniert" class="how-it-works">
+        <div class="container">
+          <h2 class="section-title">Wie es funktioniert</h2>
+          <div class="steps">
+            <div class="step-card">
+              <div class="step-number">1</div>
+              <h3>Einkäufe erfassen</h3>
+              <p>
+                Du gibst deine Einkäufe manuell ein – Betrag, Händler und eine kurze Beschreibung des Artikels.
+                In der finalen Version wird dies automatisch über eine sichere Open Banking Verbindung geschehen,
+                sodass alle deine Transaktionen direkt von deinem Bankkonto übernommen werden.
+              </p>
+            </div>
+
+            <div class="step-card">
+              <div class="step-number">2</div>
+              <h3>Ausgaben analysieren</h3>
+              <p>
+                SmartBudgetAI analysiert deine Ausgabe und ordnet sie automatisch einer Kategorie zu –
+                etwa Elektronik, Lebensmittel, Freizeit oder Fixkosten. Die künstliche Intelligenz erkennt Muster
+                in deinem Ausgabeverhalten und zeigt dir Auffälligkeiten oder ungewöhnliche Transaktionen.
+              </p>
+            </div>
+
+            <div class="step-card">
+              <div class="step-number">3</div>
+              <h3>Tipps erhalten</h3>
+              <p>
+                Basierend auf deiner Ausgabe erhältst du konkrete und verständliche Budget-Tipps.
+                SmartBudgetAI gibt dir Empfehlungen, wie du dein Budget besser einteilen, Sparpotenziale nutzen
+                und langfristig deine finanziellen Ziele erreichen kannst – alles in einfacher Sprache.
+              </p>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section id="prototyp-testen" class="prototype">
+        <div class="container">
+          <h2 class="section-title">Prototyp: Einkauf analysieren</h2>
+          <p class="prototype-intro">
+            Gib einen typischen Online-Einkauf ein und erhalte eine Beispiel-Analyse von SmartBudgetAI.
+            Dies ist ein Proof of Concept mit manuell erfassten Daten. Später wird diese Funktion
+            automatisch mit echten Bankdaten arbeiten.
+          </p>
+
+          <div class="prototype-container">
+            <form id="purchaseForm">
+              <div class="form-group">
+                <label for="amount">Betrag in CHF</label>
+                <input
+                  type="number"
+                  id="amount"
+                  name="amount"
+                  step="0.01"
+                  placeholder="z.B. 59.90"
+                  required
+                />
+              </div>
+
+              <div class="form-group">
+                <label for="merchant">Onlineshop / Händler</label>
+                <input
+                  type="text"
+                  id="merchant"
+                  name="merchant"
+                  placeholder="z.B. Digitec, Zalando, Migros"
+                  required
+                />
+              </div>
+
+              <div class="form-group">
+                <label for="description">Artikel / Beschreibung</label>
+                <textarea
+                  id="description"
+                  name="description"
+                  placeholder="z.B. Neuer Monitor für Homeoffice"
+                  required
+                ></textarea>
+              </div>
+
+              <button type="submit" class="submit-btn">Einkauf analysieren</button>
+            </form>
+
+            <div id="chatHistory" class="chat-history hidden"></div>
+          </div>
+        </div>
+      </section>
+    </main>
+
+    <footer>
+      <div class="container">
+        <p>
+          Prototyp im Rahmen einer Semesterarbeit. Keine echte Finanzberatung.
+          Keine Verbindung zu echten Bankkonten. Alle Analysen und Tipps sind simuliert
+          und dienen ausschliesslich zu Demonstrationszwecken.
+        </p>
+      </div>
+    </footer>
+
+    <script>
+      const form = document.getElementById('purchaseForm');
+      const chatHistory = document.getElementById('chatHistory');
+
+      const categories = {
+        elektronik: ['monitor', 'laptop', 'computer', 'handy', 'smartphone', 'tablet', 'kopfhörer', 'kamera', 'tv', 'bildschirm', 'maus', 'tastatur'],
+        kleidung: ['shirt', 'hose', 'kleid', 'schuhe', 'jacke', 'pullover', 'jeans', 'sneaker', 'mode'],
+        lebensmittel: ['migros', 'coop', 'aldi', 'lidl', 'denner', 'lebensmittel', 'essen', 'trinken'],
+        freizeit: ['sport', 'fitness', 'buch', 'spiel', 'hobby', 'kino', 'konzert', 'reise'],
+        wohnen: ['möbel', 'deko', 'lampe', 'teppich', 'kissen', 'ikea'],
+        abos: ['abo', 'netflix', 'spotify', 'mitgliedschaft', 'subscription'],
+        gesundheit: ['apotheke', 'medikament', 'arzt', 'fitness', 'wellness']
+      };
+
+      function detectCategory(merchant, description) {
+        const text = (merchant + ' ' + description).toLowerCase();
+
+        for (const [category, keywords] of Object.entries(categories)) {
+          if (keywords.some(keyword => text.includes(keyword))) {
+            return category;
+          }
+        }
+
+        return 'allgemein';
+      }
+
+      function getCategoryDisplayName(category) {
+        const names = {
+          elektronik: 'Elektronik',
+          kleidung: 'Kleidung & Mode',
+          lebensmittel: 'Lebensmittel',
+          freizeit: 'Freizeit & Hobby',
+          wohnen: 'Wohnen & Einrichtung',
+          abos: 'Abonnements',
+          gesundheit: 'Gesundheit & Wellness',
+          allgemein: 'Allgemeine Ausgaben'
+        };
+        return names[category] || 'Allgemeine Ausgaben';
+      }
+
+      function generateAnalysis(amount, merchant, description) {
+        const category = detectCategory(merchant, description);
+        const categoryName = getCategoryDisplayName(category);
+
+        const analyses = {
+          elektronik: {
+            assessment: `Diese Ausgabe gehört zu deinen variablen Kosten im Bereich Elektronik. Bei einem Betrag von CHF ${amount} handelt es sich um eine grössere Anschaffung. Solche Käufe sollten idealerweise geplant und im Budget berücksichtigt werden.`,
+            tips: [
+              'Prüfe, ob der Artikel wirklich notwendig ist oder ob es eine günstigere Alternative gibt.',
+              'Bei Elektronik lohnt sich oft ein Preisvergleich über mehrere Shops. Digitec, Galaxus und auch Amazon.de bieten häufig unterschiedliche Preise.'
+            ]
+          },
+          kleidung: {
+            assessment: `Diese Ausgabe von CHF ${amount} fällt in die Kategorie Mode und Kleidung. Das gehört zu den variablen Kosten, die du jeden Monat flexibel gestalten kannst.`,
+            tips: [
+              'Überlege dir vor dem Kauf: Brauchst du das Kleidungsstück wirklich oder ist es ein Impulskauf?',
+              'Ein monatliches Budget für Kleidung kann helfen, unnötige Ausgaben zu vermeiden.'
+            ]
+          },
+          lebensmittel: {
+            assessment: `Lebensmittel sind ein fixer Bestandteil deines monatlichen Budgets. CHF ${amount} ist ${amount > 200 ? 'ein grösserer' : 'ein normaler'} Einkauf für den Alltag.`,
+            tips: [
+              'Plane deine Mahlzeiten für die Woche im Voraus, um spontane und teure Einkäufe zu vermeiden.',
+              'Vergleiche die Preise zwischen Migros, Coop und Discountern wie Aldi oder Lidl – das Sparpotenzial ist oft erheblich.'
+            ]
+          },
+          freizeit: {
+            assessment: `Diese Ausgabe von CHF ${amount} gehört zu deinen Freizeit-Ausgaben. Das sind wichtige Kosten für deine Lebensqualität, sollten aber im Rahmen deines Budgets bleiben.`,
+            tips: [
+              'Setze dir ein monatliches Freizeit-Budget und tracke, wie viel du bereits ausgegeben hast.',
+              'Überlege, ob es kostenlose oder günstigere Alternativen gibt, die dir genauso viel Freude bereiten.'
+            ]
+          },
+          abos: {
+            assessment: `Abonnements von CHF ${amount} sind wiederkehrende Fixkosten. Diese solltest du regelmässig überprüfen, da sie sich schnell summieren können.`,
+            tips: [
+              'Erstelle eine Liste aller deiner Abos und prüfe, welche du wirklich nutzt.',
+              'Überlege, ob du Abos mit Freunden oder Familie teilen kannst, um Kosten zu sparen.'
+            ]
+          },
+          default: {
+            assessment: `Diese Ausgabe von CHF ${amount} bei ${merchant} gehört zu deinen allgemeinen variablen Kosten. Es ist wichtig, alle Ausgaben im Blick zu behalten, um dein Budget einzuhalten.`,
+            tips: [
+              'Überlege vor jedem Kauf: Ist das eine notwendige Ausgabe oder ein Wunsch?',
+              'Setze dir Sparziele und tracke deine Fortschritte regelmässig.'
+            ]
+          }
+        };
+
+        const analysis = analyses[category] || analyses.default;
+
+        return {
+          category: categoryName,
+          assessment: analysis.assessment,
+          tips: analysis.tips
+        };
+      }
+
+      function addMessage(type, content) {
+        const messageDiv = document.createElement('div');
+        messageDiv.className = `chat-message message-${type}`;
+
+        const bubble = document.createElement('div');
+        bubble.className = 'message-bubble';
+
+        const label = document.createElement('div');
+        label.className = 'message-label';
+        label.textContent = type === 'user' ? 'Du' : 'SmartBudgetAI';
+
+        const messageContent = document.createElement('div');
+        messageContent.className = 'message-content';
+
+        if (type === 'user') {
+          messageContent.innerHTML = content;
+        } else {
+          messageContent.innerHTML = content;
+        }
+
+        bubble.appendChild(label);
+        bubble.appendChild(messageContent);
+        messageDiv.appendChild(bubble);
+
+        chatHistory.appendChild(messageDiv);
+        chatHistory.classList.remove('hidden');
+
+        messageDiv.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+      }
+
+      form.addEventListener('submit', function(e) {
+        e.preventDefault();
+
+        const amount = parseFloat(document.getElementById('amount').value).toFixed(2);
+        const merchant = document.getElementById('merchant').value;
+        const description = document.getElementById('description').value;
+
+        const userMessage = `
+          <strong>Betrag:</strong> CHF ${amount}<br>
+          <strong>Händler:</strong> ${merchant}<br>
+          <strong>Beschreibung:</strong> ${description}
+        `;
+        addMessage('user', userMessage);
+
+        setTimeout(() => {
+          const analysis = generateAnalysis(amount, merchant, description);
+
+          const aiMessage = `
+            <div class="category">${analysis.category}</div>
+            <p>${analysis.assessment}</p>
+            <div class="tips">
+              <strong>💡 Budget-Tipps:</strong>
+              <ul style="margin: 8px 0 0 20px;">
+                <li>${analysis.tips[0]}</li>
+                <li>${analysis.tips[1]}</li>
+              </ul>
+            </div>
+          `;
+          addMessage('ai', aiMessage);
+        }, 800);
+
+        form.reset();
+      });
+
+      document.querySelectorAll('a[href^="#"]').forEach(anchor => {
+        anchor.addEventListener('click', function (e) {
+          e.preventDefault();
+          const target = document.querySelector(this.getAttribute('href'));
+          if (target) {
+            target.scrollIntoView({ behavior: 'smooth', block: 'start' });
+          }
+        });
+      });
+    </script>
+  </body>
+</html>
