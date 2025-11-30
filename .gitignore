@@ -1,0 +1,130 @@
+############################
+# OS X
+############################
+
+.DS_Store
+.AppleDouble
+.LSOverride
+Icon
+.Spotlight-V100
+.Trashes
+._*
+
+############################
+# Linux
+############################
+
+*~
+
+############################
+# Windows
+############################
+
+Thumbs.db
+ehthumbs.db
+Desktop.ini
+$RECYCLE.BIN/
+*.cab
+*.msi
+*.msm
+*.msp
+
+############################
+# Packages & Archives
+############################
+
+*.7z
+*.csv
+*.dat
+*.dmg
+*.gz
+*.iso
+*.jar
+*.rar
+*.tar
+*.zip
+
+############################
+# Executables / Binaries
+############################
+
+*.com
+*.class
+*.dll
+*.exe
+*.o
+*.out
+*.so
+
+############################
+# Logs / Temp / Database
+############################
+
+*.log
+*.tmp
+*.pid
+
+*.sqlite
+*.sqlite3
+
+############################
+# IDE / Editor
+############################
+
+.idea
+.vscode/*
+!.vscode/extensions.json
+!.vscode/settings.json
+
+nbproject
+.project
+.tsbuildinfo
+.eslintcache
+
+############################
+# Node.js
+############################
+
+node_modules/
+npm-debug.log
+yarn-error.log
+.pnp.*
+
+############################
+# Frontend (Vue + Vite)
+############################
+
+Frontend/node_modules/
+Frontend/dist/
+Frontend/.env
+Frontend/.env.local
+
+#.vite build cache
+Frontend/.vite/
+
+############################
+# Backend (Strapi)
+############################
+
+Backend/node_modules/
+Backend/build/
+Backend/dist/
+Backend/.strapi-updater.json
+Backend/.strapi-cloud.json
+Backend/.cache/
+Backend/.env
+Backend/.tmp
+
+# Strapi local uploads
+Backend/public/uploads/*
+!Backend/public/uploads/.gitkeep
+
+############################
+# Misc
+############################
+
+ssl
+exports
+coverage/
+public/uploads/*
+!.gitkeep
