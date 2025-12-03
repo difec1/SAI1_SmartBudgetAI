@@ -4,20 +4,18 @@ export interface AnalyzePayload {
   justification: string;
 }
 
-// Dein bisheriger Node Server läuft auf Port 3000
-const API_BASE_URL = "http://localhost:3000";
+const API_BASE_URL = "http://localhost:1337";
 
 export async function analyzePurchase(payload: AnalyzePayload) {
-  const response = await fetch(`${API_BASE_URL}/api/analysePurchase`, {
+  const response = await fetch(`${API_BASE_URL}/api/analyse-purchase`, {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
     },
-    // dein alter Endpoint erwartet: amount, merchant, description
     body: JSON.stringify({
       amount: payload.amount,
       merchant: payload.merchant,
-      description: payload.justification,
+      justification: payload.justification,
     }),
   });
 
