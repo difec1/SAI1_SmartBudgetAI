@@ -134,7 +134,7 @@ cp .env.local.example .env.local
 Erforderliche Variablen:
 - `NEXT_PUBLIC_SUPABASE_URL`: Supabase Projekt-URL
 - `NEXT_PUBLIC_SUPABASE_ANON_KEY`: Supabase Anon Key
-- `SUPABASE_SERVICE_ROLE_KEY`: **Pflicht** für die Server-Routen. Ohne diesen Schlüssel schlagen Inserts wegen RLS-Policies mit Fehler `42501 new row violates row-level security policy` fehl.
+- `SUPABASE_SERVICE_ROLE_KEY`: Service Role Key (server-seitig genutzt, um RLS-Regeln für Inserts/Selects im MVP zu umgehen)
 - `OPENAI_API_KEY`: OpenAI API Key (oder "mock" für Demo-Modus)
 
 ### 3. Abhängigkeiten installieren
