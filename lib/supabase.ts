@@ -1,22 +1,32 @@
 /**
- * Supabase client configuration
+ * Supabase client configuration (server-only)
  * This module provides a singleton Supabase client for server-side operations.
  * In a future Strapi backend, this would be replaced by Strapi's database layer.
  */
 
+import 'server-only';
 import { createClient } from '@supabase/supabase-js';
 
-if (!process.env.NEXT_PUBLIC_SUPABASE_URL) {
+const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
+const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+const supabaseServiceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
+
+if (!supabaseUrl) {
   throw new Error('Missing env.NEXT_PUBLIC_SUPABASE_URL');
 }
-if (!process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY) {
-  throw new Error('Missing env.NEXT_PUBLIC_SUPABASE_ANON_KEY');
+
+if (!supabaseServiceRoleKey && !supabaseAnonKey) {
+  throw new Error('Missing Supabase credentials. Set SUPABASE_SERVICE_ROLE_KEY (recommended) or NEXT_PUBLIC_SUPABASE_ANON_KEY.');
 }
 
-export const supabase = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL,
-  process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
-);
+/**
+ * Admin client used by API routes. Uses the service role key when available to bypass
+ * RLS for server-side inserts/selects. This client must never be exposed to the browser,
+ * hence the server-only directive above.
+ */
+export const supabase = createClient(supabaseUrl, supabaseServiceRoleKey || supabaseAnonKey!, {
+  auth: { autoRefreshToken: false, persistSession: false },
+});
 
 /**
  * Database helper functions
