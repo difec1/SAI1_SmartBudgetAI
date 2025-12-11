@@ -8,15 +8,21 @@ import 'server-only';
 import { createClient } from '@supabase/supabase-js';
 
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
-const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
 const supabaseServiceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
 
 if (!supabaseUrl) {
   throw new Error('Missing env.NEXT_PUBLIC_SUPABASE_URL');
 }
 
-if (!supabaseServiceRoleKey && !supabaseAnonKey) {
-  throw new Error('Missing Supabase credentials. Set SUPABASE_SERVICE_ROLE_KEY (recommended) or NEXT_PUBLIC_SUPABASE_ANON_KEY.');
+if (!supabaseServiceRoleKey) {
+  /**
+   * Using the anon key here triggers RLS errors (code 42501) when inserting into
+   * `transactions` or `savings_goals`. Force a hard error during startup so the
+   * developer adds SUPABASE_SERVICE_ROLE_KEY to `.env.local`.
+   */
+  throw new Error(
+    'Missing SUPABASE_SERVICE_ROLE_KEY. Add the service role key to .env.local to bypass RLS for server-side writes.'
+  );
 }
 
 /**
@@ -24,7 +30,7 @@ if (!supabaseServiceRoleKey && !supabaseAnonKey) {
  * RLS for server-side inserts/selects. This client must never be exposed to the browser,
  * hence the server-only directive above.
  */
-export const supabase = createClient(supabaseUrl, supabaseServiceRoleKey || supabaseAnonKey!, {
+export const supabase = createClient(supabaseUrl, supabaseServiceRoleKey, {
   auth: { autoRefreshToken: false, persistSession: false },
 });
 
