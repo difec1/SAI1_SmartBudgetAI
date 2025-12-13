@@ -4,7 +4,7 @@
  */
 
 import { NextRequest, NextResponse } from 'next/server';
-import { getUser, getTransactions, getSavingsGoals } from '@/lib/supabase';
+import { getUser, getTransactions, getSavingsGoals, getUserFromRequest } from '@/lib/supabase';
 import { budgetPlannerAgent } from '@/lib/agents';
 
 /**
@@ -13,6 +13,9 @@ import { budgetPlannerAgent } from '@/lib/agents';
  */
 export async function GET(request: NextRequest) {
   try {
+    const authUser = await getUserFromRequest(request);
+    const userId = authUser.id;
+
     const { searchParams } = new URL(request.url);
     const timeframeParam = searchParams.get('scope');
     const budgetModeParam = searchParams.get('budgetMode');
@@ -21,7 +24,6 @@ export async function GET(request: NextRequest) {
     const hasCustomRange = Boolean(startDateParam && endDateParam);
     const timeframe = hasCustomRange ? 'custom' : timeframeParam === 'year' ? 'year' : 'month';
     const budgetMode = budgetModeParam === 'manual' ? 'manual' : 'auto';
-    const userId = 'demoUser';
 
     // Nutzer und Daten laden
     const user = await getUser(userId);

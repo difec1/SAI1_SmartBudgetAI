@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { getUser, updateUserIncome } from '@/lib/supabase';
+import { getUser, updateUserIncome, getUserFromRequest } from '@/lib/supabase';
 
 /**
  * PATCH /api/user
@@ -8,8 +8,9 @@ import { getUser, updateUserIncome } from '@/lib/supabase';
  */
 export async function PATCH(request: NextRequest) {
   try {
+    const authUser = await getUserFromRequest(request);
     const { monthlyBudget } = await request.json();
-    const userId = 'demoUser';
+    const userId = authUser.id;
 
     if (monthlyBudget === undefined || Number.isNaN(Number(monthlyBudget))) {
       return NextResponse.json(

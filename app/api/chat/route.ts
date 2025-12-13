@@ -15,6 +15,7 @@ import {
   deleteSavingsGoal,
   updateSavingsGoalRules,
   markSavingsGoalComplete,
+  getUserFromRequest,
 } from '@/lib/supabase';
 import type { ChatMessage, SavingsGoal } from '@/lib/types';
 
@@ -24,8 +25,10 @@ import type { ChatMessage, SavingsGoal } from '@/lib/types';
  */
 export async function POST(request: NextRequest) {
   try {
+    const user = await getUserFromRequest(request);
+    const userId = user.id;
     const body = await request.json();
-    const { conversation, userId = 'demoUser' } = body;
+    const { conversation } = body;
 
     if (!conversation || !Array.isArray(conversation)) {
       return NextResponse.json(
@@ -344,5 +347,4 @@ function normalize(text: string): string {
     .replace(/ü/g, 'ue')
     .replace(/ß/g, 'ss');
 }
-
 

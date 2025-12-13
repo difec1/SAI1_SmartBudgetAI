@@ -11,6 +11,7 @@ import {
   updateSavingsGoalAmount,
   updateTransactionCategory,
   getMerchantCategoryHint,
+  getUserFromRequest,
 } from '@/lib/supabase';
 import { dataExtractionAgent, impulseClassificationAgent } from '@/lib/agents';
 import type { DataExtractionInput, Transaction } from '@/lib/types';
@@ -21,7 +22,8 @@ import type { DataExtractionInput, Transaction } from '@/lib/types';
  */
 export async function GET(request: NextRequest) {
   try {
-    const userId = 'demoUser';
+    const user = await getUserFromRequest(request);
+    const userId = user.id;
     const transactions = await getTransactions(userId);
 
     return NextResponse.json({
@@ -43,8 +45,9 @@ export async function GET(request: NextRequest) {
  */
 export async function POST(request: NextRequest) {
   try {
+    const user = await getUserFromRequest(request);
     const body = await request.json();
-    const userId = 'demoUser';
+    const userId = user.id;
     const { savingsGoalId, allocateAmount } = body;
 
     // Validate input
@@ -123,6 +126,7 @@ export async function POST(request: NextRequest) {
  */
 export async function PATCH(request: NextRequest) {
   try {
+    await getUserFromRequest(request);
     const body = await request.json();
     const { id, category, decisionLabel, decisionExplanation, isImpulse } = body;
     if (!id || !category) {

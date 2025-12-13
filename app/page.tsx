@@ -7,8 +7,10 @@ import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Progress } from '@/components/ui/progress';
 import type { SavingsGoal, ChatMessage } from '@/lib/types';
+import { useRequireAuth } from '@/hooks/useAuth';
 
 export default function SparzieleChat() {
+  const { session } = useRequireAuth();
   const [goals, setGoals] = useState<SavingsGoal[]>([]);
   const [messages, setMessages] = useState<ChatMessage[]>([
     {
@@ -21,17 +23,29 @@ export default function SparzieleChat() {
   const [loading, setLoading] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
+  if (session === undefined) {
+    return (
+      <div className="max-w-7xl mx-auto px-4 py-8">
+        <p className="text-center text-gray-600">Lade...</p>
+      </div>
+    );
+  }
+
   useEffect(() => {
-    fetchGoals();
-  }, []);
+    if (session?.access_token) {
+      fetchGoals(session.access_token);
+    }
+  }, [session?.access_token]);
 
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [messages]);
 
-  const fetchGoals = async () => {
+  const fetchGoals = async (accessToken: string) => {
     try {
-      const response = await fetch('/api/goals');
+      const response = await fetch('/api/goals', {
+        headers: { Authorization: `Bearer ${accessToken}` },
+      });
       const data = await response.json();
       if (data.success) {
         setGoals(data.goals);
@@ -43,7 +57,7 @@ export default function SparzieleChat() {
 
   const handleSendMessage = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!inputMessage.trim() || loading) return;
+    if (!inputMessage.trim() || loading || !session?.access_token) return;
 
     const userMessage: ChatMessage = { role: 'user', content: inputMessage };
     const updatedMessages = [...messages, userMessage];
@@ -54,11 +68,11 @@ export default function SparzieleChat() {
     try {
       const response = await fetch('/api/chat', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          conversation: updatedMessages,
-          userId: 'demoUser',
-        }),
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${session.access_token}`,
+        },
+        body: JSON.stringify({ conversation: updatedMessages }),
       });
 
       const data = await response.json();
@@ -68,7 +82,7 @@ export default function SparzieleChat() {
           { role: 'assistant', content: data.assistantMessage },
         ]);
 
-        if (data.updatedGoals) {
+        if (data.updatedGoals && session?.access_token) {
           setGoals(data.updatedGoals);
         }
       }
