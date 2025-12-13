@@ -63,5 +63,3 @@ curl -X POST http://localhost:3000/api/seed
 - Mit `OPENAI_API_KEY=mock` liefert die App plausible Demo-Antworten ohne Kosten.
 - Für Produktion: echten Key setzen, bei Bedarf Modell in `lib/openai.ts` anpassen.
 
-## Lizenz
-MIT
