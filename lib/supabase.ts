@@ -140,6 +140,77 @@ export async function createTransaction(transaction: Transaction): Promise<Trans
   };
 }
 
+export async function updateTransactionCategory(params: {
+  transactionId: string;
+  category: string;
+  decisionLabel?: 'useful' | 'unnecessary';
+  decisionExplanation?: string;
+  isImpulse?: boolean;
+  rawCategory?: string;
+}): Promise<Transaction> {
+  const { transactionId, category, decisionLabel, decisionExplanation, isImpulse, rawCategory } = params;
+
+  const { data, error } = await supabase
+    .from('transactions')
+    .update({
+      category,
+      decision_label: decisionLabel,
+      decision_explanation: decisionExplanation,
+      is_impulse: isImpulse,
+      raw_category: rawCategory,
+    })
+    .eq('id', transactionId)
+    .select()
+    .single();
+
+  if (error) throw error;
+
+  return {
+    id: data.id,
+    userId: data.user_id,
+    date: data.date,
+    merchant: data.merchant,
+    amount: parseFloat(data.amount),
+    rawCategory: data.raw_category,
+    category: data.category,
+    justification: data.justification,
+    isImpulse: data.is_impulse,
+    decisionLabel: data.decision_label as 'useful' | 'unnecessary',
+    decisionExplanation: data.decision_explanation,
+  };
+}
+
+export async function getMerchantCategoryHint(userId: string, merchant: string): Promise<string | null> {
+  const { data, error } = await supabase
+    .from('transactions')
+    .select('category')
+    .eq('user_id', userId)
+    .eq('merchant', merchant)
+    .order('created_at', { ascending: false })
+    .limit(10);
+
+  if (error) throw error;
+  if (!data || data.length === 0) return null;
+
+  // mode of categories
+  const counts = new Map<string, number>();
+  data.forEach((row) => {
+    const cat = row.category;
+    counts.set(cat, (counts.get(cat) || 0) + 1);
+  });
+
+  let topCategory: string | null = null;
+  let topCount = 0;
+  counts.forEach((count, cat) => {
+    if (count > topCount) {
+      topCategory = cat;
+      topCount = count;
+    }
+  });
+
+  return topCategory;
+}
+
 // Savings Goals
 export async function getSavingsGoals(userId: string): Promise<SavingsGoal[]> {
   const { data, error } = await supabase
@@ -186,5 +257,98 @@ export async function createSavingsGoal(goal: SavingsGoal): Promise<SavingsGoal>
     targetDate: data.target_date,
     currentSavedAmount: parseFloat(data.current_saved_amount),
     rules: data.rules as string[],
+  };
+}
+
+export async function deleteSavingsGoal(goalId: string): Promise<void> {
+  const { error } = await supabase.from('savings_goals').delete().eq('id', goalId);
+  if (error) throw error;
+}
+
+export async function updateSavingsGoalAmount(goalId: string, newAmount: number): Promise<SavingsGoal> {
+  const { data, error } = await supabase
+    .from('savings_goals')
+    .update({ current_saved_amount: newAmount })
+    .eq('id', goalId)
+    .select()
+    .single();
+
+  if (error) throw error;
+
+  return {
+    id: data.id,
+    userId: data.user_id,
+    title: data.title,
+    targetAmount: parseFloat(data.target_amount),
+    targetDate: data.target_date,
+    currentSavedAmount: parseFloat(data.current_saved_amount),
+    rules: data.rules as string[],
+  };
+}
+
+export async function updateSavingsGoalRules(goalId: string, rules: string[]): Promise<SavingsGoal> {
+  const { data, error } = await supabase
+    .from('savings_goals')
+    .update({ rules })
+    .eq('id', goalId)
+    .select()
+    .single();
+
+  if (error) throw error;
+
+  return {
+    id: data.id,
+    userId: data.user_id,
+    title: data.title,
+    targetAmount: parseFloat(data.target_amount),
+    targetDate: data.target_date,
+    currentSavedAmount: parseFloat(data.current_saved_amount),
+    rules: data.rules as string[],
+  };
+}
+
+export async function markSavingsGoalComplete(goalId: string): Promise<SavingsGoal> {
+  const { data, error } = await supabase
+    .from('savings_goals')
+    .select('*')
+    .eq('id', goalId)
+    .single();
+
+  if (error) throw error;
+
+  const { data: updated, error: updateError } = await supabase
+    .from('savings_goals')
+    .update({ current_saved_amount: data.target_amount })
+    .eq('id', goalId)
+    .select()
+    .single();
+
+  if (updateError) throw updateError;
+
+  return {
+    id: updated.id,
+    userId: updated.user_id,
+    title: updated.title,
+    targetAmount: parseFloat(updated.target_amount),
+    targetDate: updated.target_date,
+    currentSavedAmount: parseFloat(updated.current_saved_amount),
+    rules: updated.rules as string[],
+  };
+}
+
+export async function updateUserIncome(userId: string, monthlyNetIncome: number): Promise<User> {
+  const { data, error } = await supabase
+    .from('users')
+    .update({ monthly_net_income: monthlyNetIncome })
+    .eq('id', userId)
+    .select()
+    .single();
+
+  if (error) throw error;
+
+  return {
+    id: data.id,
+    name: data.name,
+    monthlyNetIncome: parseFloat(data.monthly_net_income),
   };
 }

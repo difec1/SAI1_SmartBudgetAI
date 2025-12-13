@@ -79,4 +79,26 @@
   body {
     @apply bg-background text-foreground;
   }
+
+  .dark input,
+  .dark select,
+  .dark textarea {
+    background-color: #111827;
+    color: #e5e7eb;
+    border-color: #374151;
+  }
+  .dark input::placeholder,
+  .dark textarea::placeholder,
+  .dark select::placeholder {
+    color: #9ca3af;
+  }
+  .dark option {
+    background-color: #111827;
+    color: #e5e7eb;
+  }
+
+  /* Lesbarkeit für Standard-Textfarben im Dark Mode */
+  .dark .text-gray-900 { color: #f9fafb !important; }
+  .dark .text-gray-800 { color: #f3f4f6 !important; }
+  .dark .text-gray-700 { color: #e5e7eb !important; }
 }

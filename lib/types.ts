@@ -37,9 +37,10 @@ export interface SavingsGoal {
 export interface BudgetSummary {
   userId: string;
   month: string; // YYYY-MM format
-  monthlyBudget: number; // Available budget for flexible spending
+  monthlyBudget: number; // Budget für den gewählten Zeitraum (Monat oder aufs Jahr hochgerechnet)
   usedBudget: number; // Amount already spent
   byCategory: CategorySpending[];
+  timeframe?: 'month' | 'year';
 }
 
 export interface CategorySpending {
@@ -84,7 +85,11 @@ export interface BudgetPlannerInput {
   userId: string;
   monthlyNetIncome: number;
   transactions: Transaction[];
-  month: string;
+  month: string; // Referenzmonat im Format YYYY-MM
+  timeframe?: 'month' | 'year' | 'custom'; // Steuerung des Betrachtungszeitraums
+  startDate?: string; // YYYY-MM-DD bei Custom
+  endDate?: string; // YYYY-MM-DD bei Custom
+  budgetMode?: 'auto' | 'manual'; // auto = Lohnhistorie, manual = manuell gesetztes Budget bevorzugen
 }
 
 export interface BudgetPlannerOutput {
@@ -92,6 +97,7 @@ export interface BudgetPlannerOutput {
   usedBudget: number;
   byCategory: CategorySpending[];
   patterns: string[]; // Detected patterns and nudges in German
+  timeframe?: 'month' | 'year' | 'custom';
 }
 
 // Chat types

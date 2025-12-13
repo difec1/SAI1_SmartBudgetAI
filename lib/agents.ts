@@ -78,10 +78,12 @@ Erklärung: ${shot.decisionExplanation}`
   const systemPrompt = `Du bist ein KI-Experte für persönliche Finanzen. Deine Aufgabe ist es, Transaktionen zu analysieren und zu kategorisieren.
 
 Analysiere die Transaktion und gib eine JSON-Antwort mit folgenden Feldern zurück:
-- category: Eine der folgenden Kategorien: "Shopping", "Food Delivery", "Transport", "Unterhaltung", "Lebensmittel", "Gesundheit", "Bildung", "Wohnen", "Versicherung", "Sonstiges"
+- category: Nutze bevorzugt eine der folgenden Kategorien: "Lohn", "Weitere Einnahmen", "Zahlungen", "Mobilität - Öffentlicher Verkehr", "Mobilität - Auto", "Shopping", "Lebensmittel", "Gastronomie", "Unterhaltung", "Persönliches", "Reisen", "Bargeldbezug", "Gesundheit", "Sparen & Anlegen", "Wohnen", "Steuern", "Allgemeines", "Abos", "Bildung". Falls keine passt, erfinde eine kurze, prägnante Kategorie. Wichtig: Alle Lohneingänge (auch Nebenjob, Werkstudent, 450€-Job, Teilzeit) bitte als "Lohn" kategorisieren, nur unregelmäßige sonstige Einnahmen als "Weitere Einnahmen".
 - isImpulse: true wenn es ein Impulskauf war (spontan, emotional, ungeplant), sonst false
 - decisionLabel: "useful" wenn der Kauf sinnvoll/notwendig war, "unnecessary" wenn unnötig
 - decisionExplanation: Eine kurze Erklärung auf Deutsch (1-2 Sätze), die dem Nutzer hilft, sein Kaufverhalten zu reflektieren
+- Sei vorsichtig mit "unnecessary": Markiere Ausgaben nur dann als eher unnötig, wenn sie klar nicht ins Budget passen (z.B. sehr hoher Betrag) oder wenn sich gleichartige Ausgaben in kurzer Zeit häufen (z.B. mehrere Restaurantbesuche im gleichen Monat). Ohne Verlaufskontext entscheide milde und gib eher "useful" mit Hinweis auf bewussten Konsum.
+- Wenn ein Kauf Sparziele konterkariert (z.B. hoher Betrag in Shopping, während gespart werden soll), erwähne das als Denkanstoß.
 
 Hier sind einige Beispiele zur Orientierung:
 
@@ -103,7 +105,7 @@ ${transaction.justification ? `Begründung: ${transaction.justification}` : ''}`
     if (jsonMatch) {
       const parsed = JSON.parse(jsonMatch[0]);
       return {
-        category: parsed.category || 'Sonstiges',
+        category: parsed.category || 'Allgemeines',
         isImpulse: Boolean(parsed.isImpulse),
         decisionLabel: parsed.decisionLabel === 'unnecessary' ? 'unnecessary' : 'useful',
         decisionExplanation: parsed.decisionExplanation || 'Keine Erklärung verfügbar.',
@@ -125,26 +127,58 @@ function fallbackClassification(
 ): ImpulseClassificationOutput {
   const merchant = transaction.merchant.toLowerCase();
 
-  let category = 'Sonstiges';
+  let category = 'Allgemeines';
   let isImpulse = false;
   let decisionLabel: 'useful' | 'unnecessary' = 'useful';
 
-  // Simple keyword-based classification
-  if (merchant.includes('coop') || merchant.includes('migros') || merchant.includes('aldi') || merchant.includes('lidl')) {
+  // Simple keyword-based classification aligned to the new taxonomy
+  if (merchant.includes('lohn') || merchant.includes('gehalt') || merchant.includes('salary') || merchant.includes('payroll')) {
+    category = 'Lohn';
+    decisionLabel = 'useful';
+  } else if (merchant.includes('bonus') || merchant.includes('nebenjob') || merchant.includes('zahlungseingang')) {
+    category = 'Weitere Einnahmen';
+    decisionLabel = 'useful';
+  } else if (merchant.includes('sbb') || merchant.includes('bvg') || merchant.includes('db') || merchant.includes('tram') || merchant.includes('bus')) {
+    category = 'Mobilität - Öffentlicher Verkehr';
+  } else if (merchant.includes('shell') || merchant.includes('avia') || merchant.includes('tank') || merchant.includes('parking') || merchant.includes('auto')) {
+    category = 'Mobilität - Auto';
+  } else if (merchant.includes('coop') || merchant.includes('migros') || merchant.includes('aldi') || merchant.includes('lidl')) {
     category = 'Lebensmittel';
     decisionLabel = 'useful';
-  } else if (merchant.includes('uber') || merchant.includes('delivery') || merchant.includes('pizza') || merchant.includes('restaurant')) {
-    category = 'Food Delivery';
-    isImpulse = transaction.amount > 30;
-    decisionLabel = transaction.amount > 40 ? 'unnecessary' : 'useful';
-  } else if (merchant.includes('sbb') || merchant.includes('uber') || merchant.includes('taxi')) {
-    category = 'Transport';
+  } else if (merchant.includes('uber eats') || merchant.includes('just eat') || merchant.includes('pizza') || merchant.includes('restaurant') || merchant.includes('bar') || merchant.includes('cafe')) {
+    category = 'Gastronomie';
+    isImpulse = transaction.amount > 50;
+    decisionLabel = transaction.amount > 80 ? 'unnecessary' : 'useful'; // milder bewerten, erst bei hohen Beträgen kritisch
   } else if (merchant.includes('zalando') || merchant.includes('h&m') || merchant.includes('zara') || merchant.includes('shopping')) {
     category = 'Shopping';
-    isImpulse = transaction.amount > 50;
+    isImpulse = transaction.amount > 80;
     decisionLabel = isImpulse ? 'unnecessary' : 'useful';
   } else if (merchant.includes('netflix') || merchant.includes('spotify') || merchant.includes('kino') || merchant.includes('cinema')) {
     category = 'Unterhaltung';
+  } else if (merchant.includes('krankenkasse') || merchant.includes('arzt') || merchant.includes('apotheke') || merchant.includes('zahnarzt')) {
+    category = 'Gesundheit';
+    decisionLabel = 'useful';
+  } else if (merchant.includes('miete') || merchant.includes('stie') || merchant.includes('vermieter') || merchant.includes('wohnung')) {
+    category = 'Wohnen';
+    decisionLabel = 'useful';
+  } else if (merchant.includes('steuer') || merchant.includes('tax')) {
+    category = 'Steuern';
+    decisionLabel = 'useful';
+  } else if (merchant.includes('sparplan') || merchant.includes('etf') || merchant.includes('anlage') || merchant.includes('vorsorge')) {
+    category = 'Sparen & Anlegen';
+    decisionLabel = 'useful';
+  } else if (merchant.includes('abo') || merchant.includes('subscription')) {
+    category = 'Abos';
+  } else if (merchant.includes('reise') || merchant.includes('air') || merchant.includes('hotel')) {
+    category = 'Reisen';
+  } else if (merchant.includes('bargeld') || merchant.includes('atm')) {
+    category = 'Bargeldbezug';
+  } else if (merchant.includes('zahlung') || merchant.includes('invoice') || merchant.includes('rechnung')) {
+    category = 'Zahlungen';
+  } else if (merchant.includes('persönlich') || merchant.includes('persoenlich') || merchant.includes('friseur') || merchant.includes('kosmetik')) {
+    category = 'Persönliches';
+  } else if (merchant.includes('bildung') || merchant.includes('studien') || merchant.includes('studium') || merchant.includes('schule') || merchant.includes('uni') || merchant.includes('kurs') || merchant.includes('bfh')) {
+    category = 'Bildung';
   }
 
   const decisionExplanation = isImpulse
@@ -184,14 +218,18 @@ Antworte NUR mit einem gültigen JSON-Objekt mit den Feldern: goalTitle, targetA
     const jsonMatch = response.match(/\{[\s\S]*\}/);
     if (jsonMatch) {
       const parsed = JSON.parse(jsonMatch[0]);
+      const suggestedDate =
+        parsed.targetDate && isFutureDate(parsed.targetDate)
+          ? parsed.targetDate
+          : getFutureDateISO(180);
       return {
         goalTitle: parsed.goalTitle || 'Neues Sparziel',
         targetAmount: Number(parsed.targetAmount) || 1000,
-        targetDate: parsed.targetDate || new Date(Date.now() + 180 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
+        targetDate: suggestedDate,
         rules: Array.isArray(parsed.rules) ? parsed.rules : [
           'Monatliches Budget einhalten',
           'Impulskäufe vermeiden',
-          'Regelmässig Sparen',
+          'Regelmäßig sparen',
         ],
       };
     }
@@ -203,11 +241,11 @@ Antworte NUR mit einem gültigen JSON-Objekt mit den Feldern: goalTitle, targetA
   return {
     goalTitle: 'Neues Sparziel',
     targetAmount: 1000,
-    targetDate: new Date(Date.now() + 180 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
+    targetDate: getFutureDateISO(180),
     rules: [
       'Monatliches Budget einhalten',
       'Impulskäufe vermeiden',
-      'Regelmässig 100 CHF sparen',
+      'Regelmäßig 100 CHF sparen',
     ],
   };
 }
@@ -218,20 +256,48 @@ Antworte NUR mit einem gültigen JSON-Objekt mit den Feldern: goalTitle, targetA
  * Detects patterns and provides nudges in German
  */
 export async function budgetPlannerAgent(input: BudgetPlannerInput): Promise<BudgetPlannerOutput> {
-  const { monthlyNetIncome, transactions, month } = input;
+  const {
+    monthlyNetIncome,
+    transactions,
+    month,
+    timeframe = 'month',
+    budgetMode = 'auto',
+    startDate,
+    endDate,
+  } = input;
 
-  // Calculate monthly budget (60% of net income available for flexible spending)
-  const monthlyBudget = monthlyNetIncome * 0.6;
+  // Relevante Transaktionen nach Zeitraum filtern (Monat oder ganzes Jahr)
+  const scopedTransactions = filterTransactionsByScope(transactions, month, timeframe, startDate, endDate);
+  const expenseTransactions = scopedTransactions.filter((t) => !isIncomeTransaction(t));
+  const salaryTransactions = scopedTransactions.filter(isSalaryTransaction);
 
-  // Filter transactions for the specified month
-  const monthTransactions = transactions.filter((t) => t.date.startsWith(month));
+  // Lohnhistorie auswerten und Durchschnitt berechnen (max. letzte 12 Monate, nur Lohn)
+  const referenceMonth = endDate ? endDate.slice(0, 7) : month;
+  const inferredSalary = inferMonthlySalaryFromHistory(transactions, referenceMonth);
+  const salarySumInScope = salaryTransactions.reduce((sum, t) => sum + Math.abs(t.amount), 0);
 
-  // Calculate total spent
-  const usedBudget = monthTransactions.reduce((sum, t) => sum + t.amount, 0);
+  // Manuelle Vorgabe bevorzugen, falls der Nutzer das Budget angepasst hat
+  const manualBudget = budgetMode === 'manual' && monthlyNetIncome > 0 ? monthlyNetIncome * 0.6 : undefined;
 
-  // Group by category
+  // Budget: bevorzugt tatsächliche Lohnsumme im Zeitraum; Fallback manuell oder 60%-Schätzwert
+  const monthsInScope = calculateMonthsInScope(timeframe, month, startDate, endDate);
+  const manualScopedBudget = manualBudget !== undefined ? manualBudget * monthsInScope : undefined;
+
+  const scopedBudget =
+    budgetMode === 'manual'
+      ? manualScopedBudget ?? 0
+      : salarySumInScope > 0
+      ? salarySumInScope
+      : inferredSalary > 0
+      ? inferredSalary * 0.6 * monthsInScope
+      : monthlyNetIncome * 0.6 * monthsInScope;
+
+  // Calculate total spent (nur Ausgaben)
+  const usedBudget = expenseTransactions.reduce((sum, t) => sum + Math.abs(t.amount), 0);
+
+  // Group by category (nur Ausgaben)
   const categoryMap = new Map<string, number>();
-  monthTransactions.forEach((t) => {
+  expenseTransactions.forEach((t) => {
     const current = categoryMap.get(t.category) || 0;
     categoryMap.set(t.category, current + t.amount);
   });
@@ -240,41 +306,43 @@ export async function budgetPlannerAgent(input: BudgetPlannerInput): Promise<Bud
     .map(([category, amount]) => ({ category, amount }))
     .sort((a, b) => b.amount - a.amount);
 
-  // Detect patterns and generate nudges
-  const patterns = detectPatterns(monthTransactions);
+  // Detect patterns and generate nudges (nur Ausgaben, zeitraumabhängig)
+  const patterns = detectPatterns(expenseTransactions, timeframe);
 
   return {
-    monthlyBudget,
+    monthlyBudget: scopedBudget,
     usedBudget,
     byCategory,
     patterns,
+    timeframe,
   };
 }
 
 /**
  * Detect spending patterns and generate behavioral nudges
  */
-function detectPatterns(transactions: Transaction[]): string[] {
+function detectPatterns(transactions: Transaction[], timeframe: 'month' | 'year' | 'custom'): string[] {
   const patterns: string[] = [];
 
   if (transactions.length === 0) {
-    return ['Noch keine Transaktionen für diesen Monat.'];
+    return ['Noch keine Ausgaben für diesen Zeitraum.'];
   }
 
-  // Pattern 1: Most expensive day of week
-  const daySpending = new Map<string, number>();
+  // Pattern 1: Most expensive day of week (average per day)
+  const daySpending = new Map<string, { total: number; count: number }>();
   const dayNames = ['Sonntag', 'Montag', 'Dienstag', 'Mittwoch', 'Donnerstag', 'Freitag', 'Samstag'];
 
   transactions.forEach((t) => {
     const date = new Date(t.date);
     const day = dayNames[date.getDay()];
-    daySpending.set(day, (daySpending.get(day) || 0) + t.amount);
+    const current = daySpending.get(day) || { total: 0, count: 0 };
+    daySpending.set(day, { total: current.total + t.amount, count: current.count + 1 });
   });
 
   if (daySpending.size > 0) {
-    const [mostExpensiveDay, amount] = Array.from(daySpending.entries())
-      .sort((a, b) => b[1] - a[1])[0];
-    patterns.push(`${mostExpensiveDay} ist dein teuerster Tag (Durchschnitt ${Math.round(amount)} CHF).`);
+    const [mostExpensiveDay, stats] = Array.from(daySpending.entries()).sort((a, b) => b[1].total - a[1].total)[0];
+    const average = stats.total / stats.count;
+    patterns.push(`${mostExpensiveDay} ist dein teuerster Tag (Durchschnitt ${average.toFixed(2)} CHF).`);
   }
 
   // Pattern 2: Impulse purchases timing
@@ -301,11 +369,116 @@ function detectPatterns(transactions: Transaction[]): string[] {
   });
 
   if (categoryMap.size > 0) {
-    const [topCategory, topAmount] = Array.from(categoryMap.entries())
-      .sort((a, b) => b[1] - a[1])[0];
+    const [topCategory, topAmount] = Array.from(categoryMap.entries()).sort((a, b) => b[1] - a[1])[0];
     const percentage = Math.round((topAmount / transactions.reduce((sum, t) => sum + t.amount, 0)) * 100);
     patterns.push(`${topCategory} macht ${percentage}% deiner Ausgaben aus (${Math.round(topAmount)} CHF).`);
   }
 
   return patterns.slice(0, 3); // Return top 3 patterns
+}
+
+/**
+ * Hilfsfunktion: erkennt Einnahmen anhand Kategorie und Textfeldern
+ */
+function isIncomeTransaction(t: Transaction): boolean {
+  const incomeKeywords = ['lohn', 'salaer', 'salär', 'gehalt', 'salary', 'payroll', 'einkommen', 'bonus', 'wage', 'nebenjob', 'werkstudent'];
+  const text = [t.merchant, t.rawCategory || '', t.justification || '']
+    .join(' ')
+    .toLowerCase();
+  return incomeKeywords.some((kw) => text.includes(kw)) || t.category === 'Einnahmen' || t.category === 'Lohn' || t.category === 'Weitere Einnahmen';
+}
+
+/**
+ * Hilfsfunktion: erkennt explizit Lohn (ohne weitere Einnahmen)
+ */
+function isSalaryTransaction(t: Transaction): boolean {
+  const salaryKeywords = ['lohn', 'salaer', 'salär', 'gehalt', 'salary', 'payroll', 'wage', 'nebenjob', 'werkstudent'];
+  const text = [t.merchant, t.rawCategory || '', t.justification || '', t.category]
+    .join(' ')
+    .toLowerCase();
+  return salaryKeywords.some((kw) => text.includes(kw)) || t.category === 'Lohn';
+}
+
+/**
+ * Filtert Transaktionen basierend auf Monat oder gesamtem Jahr
+ */
+function filterTransactionsByScope(
+  transactions: Transaction[],
+  month: string,
+  timeframe: 'month' | 'year' | 'custom',
+  startDate?: string,
+  endDate?: string
+): Transaction[] {
+  if (timeframe === 'year') {
+    const yearPrefix = month.slice(0, 4);
+    return transactions.filter((t) => t.date.startsWith(yearPrefix));
+  }
+  if (timeframe === 'custom' && startDate && endDate) {
+    return transactions.filter((t) => t.date >= startDate && t.date <= endDate);
+  }
+  return transactions.filter((t) => t.date.startsWith(month));
+}
+
+/**
+ * Ermittelt die Anzahl Monate im Betrachtungszeitraum (mindestens 1)
+ */
+function calculateMonthsInScope(
+  timeframe: 'month' | 'year' | 'custom',
+  month: string,
+  startDate?: string,
+  endDate?: string
+): number {
+  if (timeframe === 'year') {
+    return Math.max(1, Number(month.split('-')[1]));
+  }
+  if (timeframe === 'custom' && startDate && endDate) {
+    const [sy, sm] = startDate.split('-').map(Number);
+    const [ey, em] = endDate.split('-').map(Number);
+    const diff = (ey - sy) * 12 + (em - sm) + 1;
+    return Math.max(1, diff);
+  }
+  return 1;
+}
+
+/**
+ * Leitet das durchschnittliche monatliche Nettoeinkommen aus vergangenen Lohnzahlungen ab
+ */
+function inferMonthlySalaryFromHistory(transactions: Transaction[], referenceMonth: string): number {
+  const salaryTransactions = transactions.filter(isSalaryTransaction);
+  if (salaryTransactions.length === 0) return 0;
+
+  const incomeByMonth = new Map<string, number>();
+  salaryTransactions.forEach((t) => {
+    const monthKey = t.date.slice(0, 7);
+    const previous = incomeByMonth.get(monthKey) || 0;
+    incomeByMonth.set(monthKey, previous + Math.abs(t.amount));
+  });
+
+  const monthlyValues: number[] = [];
+  incomeByMonth.forEach((value, monthKey) => {
+    if (isWithinLastTwelveMonths(monthKey, referenceMonth)) {
+      monthlyValues.push(value);
+    }
+  });
+
+  if (monthlyValues.length === 0) return 0;
+  const average = monthlyValues.reduce((sum, value) => sum + value, 0) / monthlyValues.length;
+  return average;
+}
+
+function isWithinLastTwelveMonths(monthKey: string, referenceMonth: string): boolean {
+  const [year, month] = monthKey.split('-').map(Number);
+  const [refYear, refMonth] = referenceMonth.split('-').map(Number);
+  const diff = (refYear - year) * 12 + (refMonth - month);
+  return diff >= 0 && diff < 12;
+}
+
+function isFutureDate(dateStr: string): boolean {
+  const inputDate = new Date(dateStr);
+  const today = new Date();
+  return inputDate.getTime() > today.getTime();
+}
+
+function getFutureDateISO(daysAhead: number): string {
+  return new Date(Date.now() + daysAhead * 24 * 60 * 60 * 1000).toISOString().split('T')[0];
 }

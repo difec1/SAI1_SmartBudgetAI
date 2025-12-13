@@ -13,9 +13,17 @@ import { budgetPlannerAgent } from '@/lib/agents';
  */
 export async function GET(request: NextRequest) {
   try {
+    const { searchParams } = new URL(request.url);
+    const timeframeParam = searchParams.get('scope');
+    const budgetModeParam = searchParams.get('budgetMode');
+    const startDateParam = searchParams.get('startDate') || undefined;
+    const endDateParam = searchParams.get('endDate') || undefined;
+    const hasCustomRange = Boolean(startDateParam && endDateParam);
+    const timeframe = hasCustomRange ? 'custom' : timeframeParam === 'year' ? 'year' : 'month';
+    const budgetMode = budgetModeParam === 'manual' ? 'manual' : 'auto';
     const userId = 'demoUser';
 
-    // Fetch user data
+    // Nutzer und Daten laden
     const user = await getUser(userId);
     if (!user) {
       return NextResponse.json(
@@ -31,19 +39,31 @@ export async function GET(request: NextRequest) {
     // Get current month
     const now = new Date();
     const currentMonth = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
+    const currentYearPrefix = `${now.getFullYear()}`;
 
-    // Run budget planner agent
+    // Run budget planner agent mit passendem Zeitraum
     const budgetSummary = await budgetPlannerAgent({
       userId,
       monthlyNetIncome: user.monthlyNetIncome,
       transactions,
       month: currentMonth,
+      timeframe,
+      budgetMode,
+      startDate: startDateParam,
+      endDate: endDateParam,
     });
 
-    // Filter impulse purchases for current month
-    const impulseTransactions = transactions.filter(
-      (t) => t.isImpulse && t.date.startsWith(currentMonth)
-    );
+    // Impulskäufe für gewählten Zeitraum filtern
+    const impulseTransactions = transactions.filter((t) => {
+      if (!t.isImpulse) return false;
+      if (timeframe === 'year') {
+        return t.date.startsWith(currentYearPrefix);
+      }
+      if (timeframe === 'custom' && startDateParam && endDateParam) {
+        return t.date >= startDateParam && t.date <= endDateParam;
+      }
+      return t.date.startsWith(currentMonth);
+    });
 
     return NextResponse.json({
       success: true,
@@ -53,6 +73,7 @@ export async function GET(request: NextRequest) {
         monthlyBudget: budgetSummary.monthlyBudget,
         usedBudget: budgetSummary.usedBudget,
         byCategory: budgetSummary.byCategory,
+        timeframe: budgetSummary.timeframe,
       },
       impulseTransactions,
       goals,

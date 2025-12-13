@@ -1,233 +1,67 @@
 # SmartBudgetAI
 
-Ein intelligenter persönlicher Finanzcoach mit KI-gestützter Ausgabenanalyse, Impulskauferkennung und Sparzielverwaltung.
+Ein KI-gestützter Finanzcoach: Transaktionen werden automatisch klassifiziert, Impulskäufe erkannt, Budgets aus Lohnzahlungen abgeleitet und Sparziele mit konkreten Regeln begleitet. Im Web-UI kannst du Transaktionen erfassen (manuell oder per CSV), den Verlauf filtern/sortieren, Budgets überwachen und Analysen nach Zeitraum einsehen.
 
-## Projektziel
+## Tech-Stack und Wahl der Komponenten
+- **Next.js 13 (App Router), TypeScript** – Schnelles Fullstack-React, klare Typisierung.
+- **UI: Tailwind CSS, shadcn/ui + Radix** – Einheitliches Styling + zugängliche Primitives.
+- **Supabase (PostgreSQL)** – Einfache Auth/DB-Anbindung, Realtime optional.
+- **OpenAI** – KI-Klassifizierung; Mock-Modus für lokale Tests (`OPENAI_API_KEY=mock`).
+- **Eigene Agents (lib/agents.ts)** – Kapseln Klassifizierung, Sparziele, Budgetlogik.
 
-SmartBudgetAI hilft Nutzern dabei, ihre Finanzen besser zu verstehen und zu kontrollieren durch:
+## Features
+- KI-Klassifizierung inkl. Impulskauf-Erkennung.
+- Budget aus Lohnhistorie (oder manuell) für Monat/Jahr/Custom-Zeitraum.
+- Sparziele mit Regeln und Fortschritt.
+- Verlauf mit Suche, Kategorie-/Typfilter, Datumsfilter, Sortierung, Vorzeichen-Anzeige.
+- CSV-Import für Bulk-Transaktionen.
 
-1. **Intelligente Chat-Interaktion**: Ein KI-Coach, der in natürlicher Sprache über Geld, Sparziele und Ausgabenverhalten spricht
-2. **Automatische Transaktionsanalyse**: KI-gestützte Kategorisierung und Bewertung jeder Ausgabe
-3. **Impulskauferkennung**: Identifizierung von spontanen, emotionalen Käufen
-4. **Sparzielverwaltung**: Extraktion von Sparzielen aus natürlicher Sprache und Generierung konkreter Verhaltensregeln
-5. **Muster-Erkennung**: Analyse von Ausgabegewohnheiten (z.B. teuerster Wochentag, Zeitpunkt von Impulskäufen)
+## Lokale Einrichtung
+### Voraussetzungen
+- Node.js 18+
+- Supabase-Projekt (Service Role Key für serverseitige Writes)
+- OpenAI API Key **oder** Mock (`OPENAI_API_KEY=mock`)
 
-## Technologie-Stack
-
-- **Frontend**: Next.js 13 mit TypeScript, React, Tailwind CSS
-- **Backend**: Next.js API Routes
-- **Datenbank**: Supabase (PostgreSQL)
-- **KI**: OpenAI GPT-4o-mini
-- **UI-Komponenten**: shadcn/ui mit Radix UI
-
-## Architektur
-
-### Agent-Architektur
-
-Die Kernlogik ist in vier modulare Agents organisiert (siehe `lib/agents.ts`):
-
-#### 1. DataExtractionAgent
-Konvertiert Rohdaten (Formular-Input) in strukturierte Transaction-Objekte.
-
-**Input**: `{ date, merchant, amount, rawCategory?, justification? }`
-**Output**: Strukturiertes Transaction-Objekt (ohne KI-Klassifizierung)
-
-#### 2. ImpulseClassificationAgent
-Nutzt OpenAI mit Few-Shot Learning (basierend auf Kaggle-Daten) zur Klassifizierung.
-
-**Input**: Unklassifizierte Transaction
-**Output**:
-- `category` (Shopping, Food Delivery, Transport, etc.)
-- `isImpulse` (boolean)
-- `decisionLabel` ("useful" oder "unnecessary")
-- `decisionExplanation` (deutsche Erklärung)
-
-#### 3. SavingsGoalAgent
-Extrahiert Sparziele aus natürlicher Sprache und generiert Verhaltensregeln.
-
-**Input**: Natürlichsprachige Nachricht wie "Ich möchte 2000 CHF bis nächsten Sommer sparen"
-**Output**:
-- `goalTitle` (z.B. "Sommer Ferien")
-- `targetAmount` (2000)
-- `targetDate` (ISO-Datum)
-- `rules` (3-4 konkrete Verhaltensregeln)
-
-#### 4. BudgetPlannerAgent
-Analysiert Transaktionen und generiert Budget-Insights.
-
-**Input**: Monatseinkommen, Transaktionsliste, Monat
-**Output**:
-- `monthlyBudget` (60% des Nettoeinkommens)
-- `usedBudget`
-- `byCategory` (Ausgaben pro Kategorie)
-- `patterns` (Erkannte Muster und Nudges)
-
-### Kaggle Dataset Integration
-
-Die Datei `lib/kaggleData.ts` verwaltet historische Transaktionsdaten:
-
-1. **Few-Shot Examples**: Repräsentative Beispiele für jede Kategorie werden dem ImpulseClassificationAgent als Kontext übergeben
-2. **Baseline-Statistiken**: Durchschnittswerte für Kategorien und Impulskauf-Raten als Vergleichsbasis
-
-**Für Produktion**: Die Funktion `loadKaggleDataFromCSV()` kann aktiviert werden, um echte CSV-Daten aus dem `/data`-Ordner zu laden.
-
-## API Routen
-
-### `POST /api/chat`
-Chat-Interaktion mit dem Finanzcoach. Erkennt automatisch Sparziel-Intents und ruft den SavingsGoalAgent auf.
-
-### `POST /api/transactions`
-Erstellt eine neue Transaktion. Durchläuft DataExtractionAgent und ImpulseClassificationAgent.
-
-### `GET /api/transactions`
-Gibt alle Transaktionen des Demo-Users zurück.
-
-### `GET /api/analysis`
-Generiert Budget-Analyse mit BudgetPlannerAgent. Liefert:
-- BudgetSummary
-- Impulskäufe
-- Sparziele
-- Erkannte Muster
-
-### `GET /api/goals`
-Gibt alle Sparziele zurück.
-
-### `POST /api/seed`
-Seeded Demo-Daten (User, Transaktionen, Sparziele) für MVP-Tests.
-
-## Seiten
-
-### 1. Sparziele (`/`)
-Chat-Interface mit dem KI-Finanzcoach. Sidebar zeigt aktive Sparziele mit Fortschrittsbalken.
-
-### 2. Analyse (`/analyse`)
-- Budget-Übersicht (Balken)
-- Ausgaben nach Kategorie (Cards mit Icons)
-- Erkannte Impulskäufe
-- Sparplan mit Verhaltensregeln
-- Erkannte Muster & Nudges
-
-### 3. Verlauf (`/verlauf`)
-Liste aller Transaktionen mit:
-- Merchant, Datum, Kategorie
-- KI-Erklärung
-- Farbliche Markierung (grün = sinnvoll, rot = unnötig)
-- Button "Neue Transaktion"
-
-## Setup und Installation
-
-### 1. Supabase Datenbank einrichten
-
-Die Migrations sind bereits angelegt. Die Datenbank-Tabellen werden automatisch erstellt:
-- `users`: Nutzer-Stammdaten
-- `transactions`: Alle Transaktionen mit KI-Klassifizierung
-- `savings_goals`: Sparziele mit Verhaltensregeln
-
-### 2. Umgebungsvariablen
-
-Kopiere `.env.local.example` zu `.env.local` und fülle die Werte aus:
-
+### 1) Env-Datei anlegen
 ```bash
 cp .env.local.example .env.local
 ```
+Pflichtwerte:
+- `NEXT_PUBLIC_SUPABASE_URL`
+- `NEXT_PUBLIC_SUPABASE_ANON_KEY`
+- `SUPABASE_SERVICE_ROLE_KEY`
+- `OPENAI_API_KEY` (oder `mock`)
 
-Erforderliche Variablen:
-- `NEXT_PUBLIC_SUPABASE_URL`: Supabase Projekt-URL
-- `NEXT_PUBLIC_SUPABASE_ANON_KEY`: Supabase Anon Key
-- `SUPABASE_SERVICE_ROLE_KEY`: Service Role Key (server-seitig genutzt, um RLS-Regeln für Inserts/Selects im MVP zu umgehen)
-- `OPENAI_API_KEY`: OpenAI API Key (oder "mock" für Demo-Modus)
-
-### 3. Abhängigkeiten installieren
-
+### 2) Installieren
 ```bash
 npm install
 ```
 
-### 4. Demo-Daten laden
-
-Starte die Entwicklungsumgebung und rufe dann den Seed-Endpoint auf:
-
+### 3) Dev-Server starten
 ```bash
 npm run dev
 ```
+App unter `http://localhost:3000` öffnen.
 
-Dann in einem neuen Terminal:
-
+### 4) Demo-Daten seeden (optional)
 ```bash
 curl -X POST http://localhost:3000/api/seed
 ```
 
-Oder öffne im Browser: `http://localhost:3000/api/seed` (POST-Request)
+## Wichtige Befehle
+- Dev: `npm run dev`
+- Lint: `npm run lint`
+- Build: `npm run build`
 
-### 5. App öffnen
+## Projektstruktur (Auszug)
+- `app/` – Pages/Routes (`/analyse`, `/verlauf`, `/eingabe`, API unter `app/api`)
+- `lib/` – Agents (KI-Logik), Supabase-Client, Typen
+- `components/` – UI-Komponenten (shadcn/ui)
+- `supabase/` – SQL/Migrations (falls genutzt)
 
-Öffne `http://localhost:3000` im Browser.
-
-## Demo-Workflow
-
-1. **Sparziele-Tab**: Chatte mit dem Coach und setze ein Sparziel (z.B. "Ich möchte 3000 CHF für ein neues Auto in 12 Monaten sparen")
-2. **Verlauf-Tab**: Klicke auf "Neue Transaktion" und füge eine Ausgabe hinzu (z.B. Zalando, 150 CHF)
-3. **Analyse-Tab**: Sieh dir die Budget-Übersicht, Impulskäufe und erkannte Muster an
-
-## Architektur für zukünftige Migration
-
-### Zu Strapi Backend
-Die aktuellen Supabase-Funktionen in `lib/supabase.ts` würden durch Strapi API-Calls ersetzt:
-- `getUser()` → `GET /api/users/:id`
-- `createTransaction()` → `POST /api/transactions`
-- etc.
-
-Die Agents in `lib/agents.ts` würden als Strapi Plugins oder Services implementiert.
-
-### Zu Vue Frontend
-Die React-Komponenten würden als Vue 3 Components umgeschrieben, die dieselben API-Routen nutzen.
-
-## Entwicklungshinweise
-
-### OpenAI API
-Für MVP-Tests kann `OPENAI_API_KEY=mock` gesetzt werden. Die Mock-Implementierung in `lib/openai.ts` liefert plausible Demo-Antworten.
-
-Für Produktion: Einen echten OpenAI API Key verwenden.
-
-### Kaggle Dataset
-Aktuell verwendet die App synthetische Daten. Für Produktion:
-1. Kaggle-CSV in `/data/transactions.csv` ablegen
-2. In `lib/kaggleData.ts` die Funktion `loadKaggleDataFromCSV()` aktivieren
-
-### Code-Kommentare
-Im Code finden sich Hinweise wie:
-- `// In der Zukunft würde Strapi...`
-- `// TODO: In Produktion CSV laden`
-
-Diese markieren Stellen für zukünftige Backend-Migration.
-
-## Weitere Features (Ideen für v2)
-
-- Multi-User Support (aktuell nur "demoUser")
-- Authentifizierung mit Supabase Auth
-- Export-Funktion für Transaktionen (CSV, PDF)
-- Budget-Alerting (Email/Push wenn Budget > 80%)
-- Vergleich mit anderen Nutzern (anonymisiert)
-- Mobile App (React Native)
-- Verknüpfung mit Bank-APIs (Open Banking)
-
-## Troubleshooting
-
-### Build Error with Progress Component
-
-If you encounter a build error related to the Progress component, this is a known issue with the combination of Next.js 13.5.1 and Radix UI libraries during production builds. The code is correct but there's a minification issue.
-
-**Workaround**: Use development mode which works perfectly:
-```bash
-npm run dev
-```
-
-For production deployment, consider upgrading to Next.js 14+ or use the development mode with appropriate environment configurations.
+## Hinweis KI
+- Mit `OPENAI_API_KEY=mock` liefert die App plausible Demo-Antworten ohne Kosten.
+- Für Produktion: echten Key setzen, bei Bedarf Modell in `lib/openai.ts` anpassen.
 
 ## Lizenz
-
 MIT
-
-## Kontakt
-
-Entwickelt als MVP-Prototyp für SmartBudgetAI.

@@ -4,7 +4,14 @@
  */
 
 import { NextRequest, NextResponse } from 'next/server';
-import { getTransactions, createTransaction } from '@/lib/supabase';
+import {
+  getTransactions,
+  createTransaction,
+  getSavingsGoals,
+  updateSavingsGoalAmount,
+  updateTransactionCategory,
+  getMerchantCategoryHint,
+} from '@/lib/supabase';
 import { dataExtractionAgent, impulseClassificationAgent } from '@/lib/agents';
 import type { DataExtractionInput, Transaction } from '@/lib/types';
 
@@ -38,6 +45,7 @@ export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
     const userId = 'demoUser';
+    const { savingsGoalId, allocateAmount } = body;
 
     // Validate input
     if (!body.merchant || body.amount === undefined) {
@@ -58,6 +66,14 @@ export async function POST(request: NextRequest) {
 
     const extractedTransaction = await dataExtractionAgent(input, userId);
 
+    // Optional historical hint: if no rawCategory provided, use most frequent category for this merchant
+    if (!extractedTransaction.rawCategory) {
+      const hint = await getMerchantCategoryHint(userId, extractedTransaction.merchant);
+      if (hint) {
+        extractedTransaction.rawCategory = hint;
+      }
+    }
+
     // Step 2: Classify with AI (category, impulse, decision)
     const classification = await impulseClassificationAgent({
       transaction: extractedTransaction,
@@ -72,8 +88,21 @@ export async function POST(request: NextRequest) {
       decisionExplanation: classification.decisionExplanation,
     };
 
+    // Override for income-like transactions: treat as Einnahmen (positive inflow)
+    if (isIncomeTransaction(finalTransaction)) {
+      finalTransaction.category = 'Einnahmen';
+      finalTransaction.isImpulse = false;
+      finalTransaction.decisionLabel = 'useful';
+      finalTransaction.decisionExplanation = 'Einnahme verbucht (z.B. Lohn/Salär).';
+    }
+
     // Step 4: Store in database (Strapi would handle this in the future)
     const savedTransaction = await createTransaction(finalTransaction);
+
+    // Optional: allocate amount to savings goal
+    if (savingsGoalId && typeof allocateAmount === 'number' && allocateAmount > 0) {
+      await allocateToGoal(savingsGoalId, allocateAmount, userId);
+    }
 
     return NextResponse.json({
       success: true,
@@ -86,4 +115,53 @@ export async function POST(request: NextRequest) {
       { status: 500 }
     );
   }
+}
+
+/**
+ * PATCH /api/transactions
+ * Body: { id: string, category: string, decisionLabel?, decisionExplanation?, isImpulse? }
+ */
+export async function PATCH(request: NextRequest) {
+  try {
+    const body = await request.json();
+    const { id, category, decisionLabel, decisionExplanation, isImpulse } = body;
+    if (!id || !category) {
+      return NextResponse.json({ success: false, error: 'id und category sind erforderlich' }, { status: 400 });
+    }
+
+    const updated = await updateTransactionCategory({
+      transactionId: id,
+      category,
+      decisionLabel,
+      decisionExplanation,
+      isImpulse,
+      rawCategory: category, // store user override as hint
+    });
+
+    return NextResponse.json({ success: true, transaction: updated });
+  } catch (error) {
+    console.error('Error updating transaction category:', error);
+    return NextResponse.json({ success: false, error: 'Failed to update transaction' }, { status: 500 });
+  }
+}
+
+async function allocateToGoal(goalId: string, amount: number, userId: string) {
+  const goals = await getSavingsGoals(userId);
+  const goal = goals.find((g) => g.id === goalId);
+  if (!goal) return;
+
+  const newAmount = Math.max(0, goal.currentSavedAmount + amount);
+  await updateSavingsGoalAmount(goalId, newAmount);
+}
+
+function isIncomeTransaction(transaction: Transaction): boolean {
+  const fields = [
+    transaction.merchant,
+    transaction.rawCategory || '',
+    transaction.justification || '',
+  ].join(' ').toLowerCase();
+
+  const incomeKeywords = ['lohn', 'salär', 'gehalt', 'salary', 'payroll', 'einkommen', 'bonus', 'wage'];
+
+  return incomeKeywords.some((kw) => fields.includes(kw));
 }

@@ -89,7 +89,7 @@ export default function SparzieleChat() {
         <div className="lg:col-span-2">
           <Card className="h-[calc(100vh-12rem)] flex flex-col">
             <CardHeader className="border-b">
-              <CardTitle className="flex items-center space-x-2">
+              <CardTitle className="flex items-center space-x-2 text-gray-900 dark:text-gray-100">
                 <Target className="w-6 h-6 text-blue-600" />
                 <span>Finanzcoach Chat</span>
               </CardTitle>
@@ -105,7 +105,7 @@ export default function SparzieleChat() {
                     className={`max-w-[80%] rounded-lg px-4 py-3 ${
                       message.role === 'user'
                         ? 'bg-blue-600 text-white'
-                        : 'bg-gray-100 text-gray-900'
+                        : 'bg-gray-100 dark:bg-gray-800 text-gray-900 dark:text-gray-100'
                     }`}
                   >
                     <p className="whitespace-pre-wrap">{message.content}</p>
@@ -148,7 +148,7 @@ export default function SparzieleChat() {
         <div className="space-y-4">
           <Card>
             <CardHeader>
-              <CardTitle className="text-lg">Deine Sparziele</CardTitle>
+              <CardTitle className="text-lg text-gray-900 dark:text-gray-100">Deine Sparziele</CardTitle>
             </CardHeader>
             <CardContent className="space-y-4">
               {goals.length === 0 ? (
@@ -164,21 +164,21 @@ export default function SparzieleChat() {
                   );
 
                   return (
-                    <div key={goal.id} className="space-y-3 p-4 bg-blue-50 rounded-lg">
+                    <div key={goal.id} className="space-y-3 p-4 bg-blue-50 dark:bg-gray-800 rounded-lg">
                       <div>
-                        <h3 className="font-semibold text-gray-900">{goal.title}</h3>
-                        <p className="text-sm text-gray-600">
+                        <h3 className="font-semibold text-gray-900 dark:text-gray-100">{goal.title}</h3>
+                        <p className="text-sm text-gray-600 dark:text-gray-300">
                           {goal.targetAmount} CHF bis {new Date(goal.targetDate).toLocaleDateString('de-CH')}
                         </p>
-                        <p className="text-xs text-gray-500 mt-1">
+                        <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
                           Noch {daysUntil} Tage
                         </p>
                       </div>
 
                       <div>
                         <div className="flex justify-between text-sm mb-1">
-                          <span className="text-gray-600">Fortschritt</span>
-                          <span className="font-medium">
+                          <span className="text-gray-600 dark:text-gray-300">Fortschritt</span>
+                          <span className="font-medium text-gray-900 dark:text-gray-100">
                             {goal.currentSavedAmount} CHF / {goal.targetAmount} CHF
                           </span>
                         </div>
@@ -186,11 +186,11 @@ export default function SparzieleChat() {
                       </div>
 
                       <div>
-                        <p className="text-xs font-medium text-gray-700 mb-2">Deine Regeln:</p>
+                        <p className="text-xs font-medium text-gray-700 dark:text-gray-200 mb-2">Deine Regeln:</p>
                         <ul className="space-y-1">
                           {goal.rules.map((rule, idx) => (
-                            <li key={idx} className="text-xs text-gray-600 flex items-start">
-                              <span className="text-blue-600 mr-2">•</span>
+                            <li key={idx} className="text-xs text-gray-600 dark:text-gray-200 flex items-start">
+                              <span className="text-blue-600 dark:text-blue-300 mr-2">•</span>
                               <span>{rule}</span>
                             </li>
                           ))}
