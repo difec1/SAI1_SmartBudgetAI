@@ -8,4 +8,9 @@ if (!supabaseUrl || !supabaseAnonKey) {
 }
 
 // Singleton browser client for auth + client-side calls
-export const supabaseBrowser = createClient(supabaseUrl, supabaseAnonKey);
+export const supabaseBrowser = createClient(supabaseUrl, supabaseAnonKey, {
+  // explizit fetch durchreichen, falls globalThis.fetch nicht verfügbar ist
+  global: {
+    fetch: (...args) => fetch(...(args as Parameters<typeof fetch>)),
+  },
+});
