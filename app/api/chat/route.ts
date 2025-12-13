@@ -102,7 +102,8 @@ export async function POST(request: NextRequest) {
           if (typeof ruleRemoveIntent.ruleIndex === 'number' && rules[ruleRemoveIntent.ruleIndex]) {
             newRules = rules.filter((_, idx) => idx !== ruleRemoveIntent.ruleIndex);
           } else if (ruleRemoveIntent.ruleText) {
-            newRules = rules.filter((r) => !r.toLowerCase().includes(ruleRemoveIntent.ruleText.toLowerCase()));
+            const ruleText = ruleRemoveIntent.ruleText.toLowerCase();
+            newRules = rules.filter((r) => !r.toLowerCase().includes(ruleText));
           }
 
           await updateSavingsGoalRules(targetGoal.id, newRules);
@@ -343,3 +344,5 @@ function normalize(text: string): string {
     .replace(/ü/g, 'ue')
     .replace(/ß/g, 'ss');
 }
+
+
