@@ -5,14 +5,13 @@
 
 import { NextRequest, NextResponse } from 'next/server';
 import { dataExtractionAgent, impulseClassificationAgent } from '@/lib/agents';
-import { createTransaction, getUserFromRequest } from '@/lib/supabase';
+import { createTransaction } from '@/lib/supabase';
 import type { DataExtractionInput, Transaction } from '@/lib/types';
 
 type CsvRow = Partial<DataExtractionInput>;
 
 export async function POST(request: NextRequest) {
   try {
-    const user = await getUserFromRequest(request);
     const formData = await request.formData();
     const file = formData.get('file');
 
@@ -27,7 +26,7 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ success: false, error: 'CSV ist leer.' }, { status: 400 });
     }
 
-    const userId = user.id;
+    const userId = 'demoUser';
     let succeeded = 0;
     const errors: { line: number; message: string }[] = [];
 

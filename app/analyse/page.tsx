@@ -16,7 +16,6 @@ import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import type { BudgetSummary, Transaction, SavingsGoal } from '@/lib/types';
-import { useRequireAuth } from '@/hooks/useAuth';
 
 const CATEGORY_ICONS: Record<string, any> = {
   Shopping: ShoppingBag,
@@ -29,7 +28,6 @@ const CATEGORY_ICONS: Record<string, any> = {
 };
 
 export default function AnalysePage() {
-  const { session } = useRequireAuth();
   const [budgetSummary, setBudgetSummary] = useState<BudgetSummary | null>(null);
   const [impulseTransactions, setImpulseTransactions] = useState<Transaction[]>([]);
   const [goals, setGoals] = useState<SavingsGoal[]>([]);
@@ -42,14 +40,6 @@ export default function AnalysePage() {
   const [budgetMode, setBudgetMode] = useState<'auto' | 'manual'>('auto');
   const [startDate, setStartDate] = useState('');
   const [endDate, setEndDate] = useState('');
-
-  if (session === undefined) {
-    return (
-      <div className="max-w-7xl mx-auto px-4 py-8">
-        <p className="text-center text-gray-600">Lade...</p>
-      </div>
-    );
-  }
 
   useEffect(() => {
     // Lokale Präferenzen (Zeitraum/Budgetquelle) beim Laden wiederherstellen
@@ -65,26 +55,21 @@ export default function AnalysePage() {
   }, []);
 
   useEffect(() => {
-    if (!session?.access_token) {
-      return;
-    }
     const canFetch =
       timeframe !== 'custom' || (timeframe === 'custom' && startDate && endDate && startDate <= endDate);
-    if (canFetch && session.access_token) {
-      fetchAnalysis(timeframe, budgetMode, startDate, endDate, session.access_token);
+    if (canFetch) {
+      fetchAnalysis(timeframe, budgetMode, startDate, endDate);
     } else {
       setLoading(false);
     }
-  }, [timeframe, budgetMode, startDate, endDate, session?.access_token]);
+  }, [timeframe, budgetMode, startDate, endDate]);
 
   const fetchAnalysis = async (
     scope: 'month' | 'year' | 'custom',
     mode: 'auto' | 'manual',
     customStart?: string,
-    customEnd?: string,
-    accessToken?: string
+    customEnd?: string
   ) => {
-    if (!accessToken) return;
     setLoading(true);
     try {
       const params = new URLSearchParams({ scope, budgetMode: mode });
@@ -92,9 +77,7 @@ export default function AnalysePage() {
         params.set('startDate', customStart);
         params.set('endDate', customEnd);
       }
-      const response = await fetch(`/api/analysis?${params.toString()}`, {
-        headers: { Authorization: `Bearer ${accessToken}` },
-      });
+      const response = await fetch(`/api/analysis?${params.toString()}`);
       const data = await response.json();
 
       if (data.success) {
@@ -122,10 +105,9 @@ export default function AnalysePage() {
     if (Number.isNaN(amount) || amount <= 0) return;
 
     try {
-      if (!session?.access_token) return;
       const res = await fetch('/api/goals', {
         method: 'PATCH',
-        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${session.access_token}` },
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ goalId: selectedGoal.id, amount, mode: 'deposit' }),
       });
       const data = await res.json();
@@ -140,10 +122,9 @@ export default function AnalysePage() {
 
   const deleteGoal = async (goalId: string) => {
     try {
-      if (!session?.access_token) return;
       const res = await fetch('/api/goals', {
         method: 'DELETE',
-        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${session.access_token}` },
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ goalId }),
       });
       const data = await res.json();

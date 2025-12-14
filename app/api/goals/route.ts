@@ -4,7 +4,7 @@
  */
 
 import { NextRequest, NextResponse } from 'next/server';
-import { getSavingsGoals, updateSavingsGoalAmount, deleteSavingsGoal, getUserFromRequest } from '@/lib/supabase';
+import { getSavingsGoals, updateSavingsGoalAmount, deleteSavingsGoal } from '@/lib/supabase';
 
 /**
  * GET /api/goals
@@ -12,8 +12,7 @@ import { getSavingsGoals, updateSavingsGoalAmount, deleteSavingsGoal, getUserFro
  */
 export async function GET(request: NextRequest) {
   try {
-    const user = await getUserFromRequest(request);
-    const userId = user.id;
+    const userId = 'demoUser';
     const goals = await getSavingsGoals(userId);
 
     return NextResponse.json({
@@ -35,9 +34,8 @@ export async function GET(request: NextRequest) {
  */
 export async function PATCH(request: NextRequest) {
   try {
-    const user = await getUserFromRequest(request);
     const { goalId, amount, mode } = await request.json();
-    const userId = user.id;
+    const userId = 'demoUser';
 
     if (!goalId || typeof amount !== 'number' || mode !== 'deposit') {
       return NextResponse.json({ success: false, error: 'Invalid payload' }, { status: 400 });
@@ -66,14 +64,13 @@ export async function PATCH(request: NextRequest) {
  */
 export async function DELETE(request: NextRequest) {
   try {
-    const user = await getUserFromRequest(request);
     const { goalId } = await request.json();
     if (!goalId) {
       return NextResponse.json({ success: false, error: 'goalId required' }, { status: 400 });
     }
 
     await deleteSavingsGoal(goalId);
-    const goals = await getSavingsGoals(user.id);
+    const goals = await getSavingsGoals('demoUser');
 
     return NextResponse.json({ success: true, goals });
   } catch (error) {

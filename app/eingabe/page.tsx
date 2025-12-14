@@ -13,7 +13,6 @@ import TransactionForm from '@/components/TransactionForm';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Progress } from '@/components/ui/progress';
-import { useRequireAuth } from '@/hooks/useAuth';
 
 type BulkUploadResult = {
   success: boolean;
@@ -24,7 +23,6 @@ type BulkUploadResult = {
 };
 
 export default function EingabePage() {
-  const { session } = useRequireAuth();
   const [uploading, setUploading] = useState(false);
   const [uploadSummary, setUploadSummary] = useState<BulkUploadResult | null>(null);
   const [fileName, setFileName] = useState('');
@@ -32,21 +30,12 @@ export default function EingabePage() {
   const fileInputRef = useRef<HTMLInputElement | null>(null);
   const [uploadProgress, setUploadProgress] = useState(0);
 
-  if (session === undefined) {
-    return (
-      <div className="max-w-7xl mx-auto px-4 py-8">
-        <p className="text-center text-gray-600">Lade...</p>
-      </div>
-    );
-  }
-
   const handleFileChange = async (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
     if (!file) return;
     // Input zurücksetzen, damit die gleiche Datei erneut gewählt werden kann, ohne zweimal klicken zu müssen
     event.target.value = '';
 
-    if (!session?.access_token) return;
     setFileName(file.name);
     setUploading(true);
     setUploadSummary(null);
@@ -63,7 +52,6 @@ export default function EingabePage() {
       const res = await fetch('/api/transactions/bulk', {
         method: 'POST',
         body: formData,
-        headers: { Authorization: `Bearer ${session.access_token}` },
       });
 
       const data = await res.json();
@@ -102,7 +90,6 @@ export default function EingabePage() {
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         <TransactionForm
           variant="embedded"
-          accessToken={session?.access_token || ''}
           onSuccess={() => {
             setManualSaved(true);
             setTimeout(() => setManualSaved(false), 2000);

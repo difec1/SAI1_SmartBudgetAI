@@ -17,7 +17,6 @@ import { Progress } from '@/components/ui/progress';
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import type { Transaction } from '@/lib/types';
-import { useRequireAuth } from '@/hooks/useAuth';
 
 const BASE_CATEGORIES = [
   'Abos',
@@ -47,7 +46,6 @@ const CATEGORY_OPTIONS = Array.from(new Set(BASE_CATEGORIES)).sort((a, b) =>
 const INCOME_KEYWORDS = ['lohn', 'salär', 'salaer', 'gehalt', 'salary', 'payroll', 'einkommen', 'einnahme', 'bonus', 'wage'];
 
 export default function VerlaufPage() {
-  const { session } = useRequireAuth();
   const [transactions, setTransactions] = useState<Transaction[]>([]);
   const [loading, setLoading] = useState(true);
   const [budgetInfo, setBudgetInfo] = useState({ used: 0, total: 0 });
@@ -66,19 +64,9 @@ export default function VerlaufPage() {
     'date-desc' | 'date-asc' | 'amount-desc' | 'amount-asc'
   >('date-desc');
 
-  if (session === undefined) {
-    return (
-      <div className="max-w-7xl mx-auto px-4 py-8">
-        <p className="text-center text-gray-600">Lade...</p>
-      </div>
-    );
-  }
-
   useEffect(() => {
-    if (session?.access_token) {
-      fetchTransactions(session.access_token);
-    }
-  }, [session?.access_token]);
+    fetchTransactions();
+  }, []);
 
   useEffect(() => {
     const savedMode = typeof window !== 'undefined' ? localStorage.getItem('budgetMode') : null;
@@ -89,13 +77,11 @@ export default function VerlaufPage() {
 
   useEffect(() => {
     fetchBudgetInfo(budgetMode);
-  }, [budgetMode, session?.access_token]);
+  }, [budgetMode]);
 
-  const fetchTransactions = async (accessToken: string) => {
+  const fetchTransactions = async () => {
     try {
-      const response = await fetch('/api/transactions', {
-        headers: { Authorization: `Bearer ${accessToken}` },
-      });
+      const response = await fetch('/api/transactions');
       const data = await response.json();
 
       if (data.success) {
@@ -110,11 +96,8 @@ export default function VerlaufPage() {
 
   const fetchBudgetInfo = async (mode: 'auto' | 'manual' = budgetMode) => {
     try {
-      if (!session?.access_token) return;
       const params = new URLSearchParams({ scope: 'month', budgetMode: mode });
-      const response = await fetch(`/api/analysis?${params.toString()}`, {
-        headers: { Authorization: `Bearer ${session.access_token}` },
-      });
+      const response = await fetch(`/api/analysis?${params.toString()}`);
       const data = await response.json();
 
       if (data.success && data.budgetSummary) {
@@ -186,10 +169,9 @@ export default function VerlaufPage() {
 
     setSavingBudget(true);
     try {
-      if (!session?.access_token) return;
       const response = await fetch('/api/user', {
         method: 'PATCH',
-        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${session.access_token}` },
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ monthlyBudget: parsed }),
       });
 

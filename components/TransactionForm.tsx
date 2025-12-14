@@ -13,7 +13,6 @@ interface TransactionFormProps {
   onClose?: () => void;
   onSuccess: () => void;
   variant?: 'modal' | 'embedded';
-  accessToken: string;
 }
 
 const defaultFormState = {
@@ -26,7 +25,7 @@ const defaultFormState = {
   allocateAmount: '',
 };
 
-export default function TransactionForm({ onClose, onSuccess, variant = 'modal', accessToken }: TransactionFormProps) {
+export default function TransactionForm({ onClose, onSuccess, variant = 'modal' }: TransactionFormProps) {
   const [loading, setLoading] = useState(false);
   const [goals, setGoals] = useState<SavingsGoal[]>([]);
   const isModal = variant === 'modal';
@@ -35,11 +34,8 @@ export default function TransactionForm({ onClose, onSuccess, variant = 'modal',
 
   useEffect(() => {
     const fetchGoals = async () => {
-      if (!accessToken) return;
       try {
-        const res = await fetch('/api/goals', {
-          headers: { Authorization: `Bearer ${accessToken}` },
-        });
+        const res = await fetch('/api/goals');
         const data = await res.json();
         if (data.success) setGoals(data.goals);
       } catch (error) {
@@ -47,7 +43,7 @@ export default function TransactionForm({ onClose, onSuccess, variant = 'modal',
       }
     };
     fetchGoals();
-  }, [accessToken]);
+  }, []);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -56,7 +52,7 @@ export default function TransactionForm({ onClose, onSuccess, variant = 'modal',
     try {
       const response = await fetch('/api/transactions', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${accessToken}` },
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           ...formData,
           amount: parseFloat(formData.amount),

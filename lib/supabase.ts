@@ -6,10 +6,8 @@
 
 import 'server-only';
 import { createClient } from '@supabase/supabase-js';
-import { NextRequest } from 'next/server';
 
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
-const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
 const supabaseServiceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
 
 if (!supabaseUrl) {
@@ -35,22 +33,6 @@ if (!supabaseServiceRoleKey) {
 export const supabase = createClient(supabaseUrl, supabaseServiceRoleKey, {
   auth: { autoRefreshToken: false, persistSession: false },
 });
-
-// Lightweight auth client (anon key) used to validate JWTs from the Authorization header
-const supabaseAuth = createClient(supabaseUrl, supabaseAnonKey || '');
-
-export async function getUserFromRequest(request: NextRequest) {
-  const authHeader = request.headers.get('authorization') || '';
-  const token = authHeader.toLowerCase().startsWith('bearer ') ? authHeader.slice(7).trim() : null;
-  if (!token) {
-    throw new Error('Unauthorized');
-  }
-  const { data, error } = await supabaseAuth.auth.getUser(token);
-  if (error || !data.user) {
-    throw new Error('Unauthorized');
-  }
-  return data.user;
-}
 
 /**
  * Database helper functions
