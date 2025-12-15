@@ -3,12 +3,13 @@
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { useEffect, useState } from 'react';
-import { Target, BarChart3, History, PlusSquare, Moon, Sun } from 'lucide-react';
+import { Target, BarChart3, History, PlusSquare, Moon, Sun, Menu, X } from 'lucide-react';
 import { useI18n } from '@/hooks/useI18n';
 
 export default function Navigation() {
   const pathname = usePathname();
   const [theme, setTheme] = useState<'light' | 'dark'>('light');
+  const [mobileOpen, setMobileOpen] = useState(false);
   const { lang, toggleLanguage, t } = useI18n();
 
   useEffect(() => {
@@ -17,6 +18,10 @@ export default function Navigation() {
     setTheme(initial);
     applyTheme(initial);
   }, []);
+
+  useEffect(() => {
+    setMobileOpen(false);
+  }, [pathname]);
 
   const applyTheme = (mode: 'light' | 'dark') => {
     if (typeof document === 'undefined') return;
@@ -42,6 +47,26 @@ export default function Navigation() {
     { href: '/eingabe', label: t('nav.input', 'Eingabe'), icon: PlusSquare },
   ];
 
+  const renderLink = (item: (typeof navItems)[number], variant: 'desktop' | 'mobile') => {
+    const Icon = item.icon;
+    const isActive = pathname === item.href;
+    const base =
+      variant === 'desktop'
+        ? 'flex items-center space-x-2 px-4 py-2 rounded-lg font-medium transition-colors'
+        : 'flex items-center gap-2 px-3 py-2 rounded-lg text-sm font-medium transition-colors';
+
+    const active = 'bg-blue-50 text-blue-600 dark:bg-blue-900/30 dark:text-blue-200';
+    const inactive =
+      'text-gray-600 hover:bg-gray-50 hover:text-gray-900 dark:text-gray-200 dark:hover:bg-gray-800';
+
+    return (
+      <Link key={item.href} href={item.href} className={`${base} ${isActive ? active : inactive}`}>
+        <Icon className="w-5 h-5" />
+        <span>{item.label}</span>
+      </Link>
+    );
+  };
+
   return (
     <nav className="border-b bg-white dark:bg-gray-900 shadow-sm">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
@@ -53,32 +78,46 @@ export default function Navigation() {
             <span className="text-xl font-bold text-gray-900 dark:text-gray-50">SmartBudgetAI</span>
           </div>
 
-          <div className="flex items-center space-x-1">
-            {navItems.map((item) => {
-              const Icon = item.icon;
-              const isActive = pathname === item.href;
+          <div className="flex items-center gap-2">
+            <div className="hidden md:flex items-center space-x-1">
+              {navItems.map((item) => renderLink(item, 'desktop'))}
+              <button
+                onClick={toggleLanguage}
+                className="inline-flex items-center justify-center rounded-lg px-3 py-2 text-gray-600 hover:bg-gray-50 hover:text-gray-900 dark:text-gray-200 dark:hover:bg-gray-800"
+                aria-label={t('nav.switchLang', 'Sprache')}
+                type="button"
+              >
+                <span className="text-sm font-semibold">{lang === 'de' ? 'EN' : 'DE'}</span>
+              </button>
+              <button
+                onClick={toggleTheme}
+                className="ml-3 inline-flex items-center justify-center rounded-lg p-2 text-gray-600 hover:bg-gray-50 hover:text-gray-900 dark:text-gray-200 dark:hover:bg-gray-800"
+                aria-label="Theme umschalten"
+                type="button"
+              >
+                {theme === 'dark' ? <Sun className="w-5 h-5" /> : <Moon className="w-5 h-5" />}
+              </button>
+            </div>
 
-              return (
-                <Link
-                  key={item.href}
-                  href={item.href}
-                  className={`
-                    flex items-center space-x-2 px-4 py-2 rounded-lg font-medium transition-colors
-                    ${
-                      isActive
-                        ? 'bg-blue-50 text-blue-600 dark:bg-blue-900/30 dark:text-blue-200'
-                        : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900 dark:text-gray-200 dark:hover:bg-gray-800'
-                    }
-                  `}
-                >
-                  <Icon className="w-5 h-5" />
-                  <span>{item.label}</span>
-                </Link>
-              );
-            })}
+            <button
+              className="md:hidden inline-flex items-center justify-center rounded-lg p-2 text-gray-600 hover:bg-gray-50 hover:text-gray-900 dark:text-gray-200 dark:hover:bg-gray-800"
+              aria-label="Menü öffnen"
+              onClick={() => setMobileOpen((s) => !s)}
+              type="button"
+            >
+              {mobileOpen ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
+            </button>
+          </div>
+        </div>
+
+        <div
+          className={`md:hidden ${mobileOpen ? 'block' : 'hidden'} border-t border-gray-200 dark:border-gray-800 pt-3 pb-4 space-y-1`}
+        >
+          {navItems.map((item) => renderLink(item, 'mobile'))}
+          <div className="flex items-center gap-2 pt-2">
             <button
               onClick={toggleLanguage}
-              className="inline-flex items-center justify-center rounded-lg px-3 py-2 text-gray-600 hover:bg-gray-50 hover:text-gray-900 dark:text-gray-200 dark:hover:bg-gray-800"
+              className="flex-1 inline-flex items-center justify-center rounded-lg px-3 py-2 text-gray-600 hover:bg-gray-50 hover:text-gray-900 dark:text-gray-200 dark:hover:bg-gray-800"
               aria-label={t('nav.switchLang', 'Sprache')}
               type="button"
             >
@@ -86,7 +125,7 @@ export default function Navigation() {
             </button>
             <button
               onClick={toggleTheme}
-              className="ml-3 inline-flex items-center justify-center rounded-lg p-2 text-gray-600 hover:bg-gray-50 hover:text-gray-900 dark:text-gray-200 dark:hover:bg-gray-800"
+              className="inline-flex items-center justify-center rounded-lg p-2 text-gray-600 hover:bg-gray-50 hover:text-gray-900 dark:text-gray-200 dark:hover:bg-gray-800"
               aria-label="Theme umschalten"
               type="button"
             >

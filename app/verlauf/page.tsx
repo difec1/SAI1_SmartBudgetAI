@@ -511,7 +511,7 @@ export default function VerlaufPage() {
             return (
               <Card key={transaction.id} className="hover:shadow-md transition-shadow">
                 <CardContent className="pt-6">
-                    <div className="flex items-start justify-between">
+                    <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
                       <div className="flex-1">
                         <div className="flex items-center space-x-3 mb-2">
                           <div>
@@ -602,24 +602,25 @@ export default function VerlaufPage() {
                             <p className="text-xs font-semibold text-gray-700 dark:text-gray-200 mb-2">
                               {lang === 'en' ? 'Adjust category' : 'Kategorie anpassen'}
                             </p>
-                            <div className="flex items-center space-x-2">
-                              <select
-                                className="border rounded px-2 py-1 text-sm bg-white dark:bg-gray-900 dark:text-gray-100"
-                                value={categoryEdits[transaction.id] ?? transaction.category}
-                                onChange={(e) => handleCategoryChange(transaction.id, e.target.value)}
-                              >
-                                {CATEGORY_OPTIONS.map((opt) => (
-                                  <option key={opt} value={opt}>
+                        <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:space-x-2">
+                          <select
+                            className="border rounded px-2 py-1 text-sm bg-white dark:bg-gray-900 dark:text-gray-100 sm:w-auto"
+                            value={categoryEdits[transaction.id] ?? transaction.category}
+                            onChange={(e) => handleCategoryChange(transaction.id, e.target.value)}
+                          >
+                            {CATEGORY_OPTIONS.map((opt) => (
+                              <option key={opt} value={opt}>
                                     {translateCategory(opt)}
                                   </option>
                                 ))}
                               </select>
-                              <Button
-                                size="sm"
-                                variant="outline"
-                                onClick={() => saveCategory(transaction)}
-                                disabled={savingCategoryId === transaction.id}
-                              >
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            onClick={() => saveCategory(transaction)}
+                            disabled={savingCategoryId === transaction.id}
+                            className="w-full sm:w-auto"
+                          >
                                 {savingCategoryId === transaction.id
                                   ? t('verlauf.table.saving', 'Speichere...')
                                   : t('verlauf.save', 'Speichern')}
@@ -628,8 +629,8 @@ export default function VerlaufPage() {
                           </div>
                         </div>
 
-                        <div className="text-right ml-6">
-                          <p className={`text-2xl font-bold ${isIncome ? 'text-green-700' : 'text-red-600'}`}>
+                        <div className="text-left sm:text-right sm:ml-6">
+                          <p className={`text-2xl font-bold break-words ${isIncome ? 'text-green-700' : 'text-red-600'}`}>
                             {amountLabel}
                       </p>
                     </div>
