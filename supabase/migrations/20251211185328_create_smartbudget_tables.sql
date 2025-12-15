@@ -39,10 +39,11 @@
 
 -- Create users table
 CREATE TABLE IF NOT EXISTS users (
-  id text PRIMARY KEY,
+  id text NOT NULL,
   name text NOT NULL,
   monthly_net_income numeric NOT NULL DEFAULT 0,
-  created_at timestamptz DEFAULT now()
+  created_at timestamp with time zone DEFAULT now(),
+  CONSTRAINT users_pkey PRIMARY KEY (id)
 );
 
 ALTER TABLE users ENABLE ROW LEVEL SECURITY;
@@ -56,18 +57,21 @@ CREATE POLICY "Allow all access to users"
 
 -- Create transactions table
 CREATE TABLE IF NOT EXISTS transactions (
-  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
-  user_id text NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  id uuid NOT NULL DEFAULT gen_random_uuid(),
+  user_id text NOT NULL,
   date text NOT NULL,
   merchant text NOT NULL,
   amount numeric NOT NULL,
   raw_category text,
-  category text NOT NULL DEFAULT '',
+  category text NOT NULL DEFAULT ''::text,
   justification text,
   is_impulse boolean NOT NULL DEFAULT false,
-  decision_label text NOT NULL DEFAULT 'useful',
-  decision_explanation text NOT NULL DEFAULT '',
-  created_at timestamptz DEFAULT now()
+  decision_label text NOT NULL DEFAULT 'useful'::text,
+  decision_explanation text NOT NULL DEFAULT ''::text,
+  created_at timestamp with time zone DEFAULT now(),
+  decision_explanation_en text,
+  CONSTRAINT transactions_pkey PRIMARY KEY (id),
+  CONSTRAINT transactions_user_id_fkey FOREIGN KEY (user_id) REFERENCES public.users(id)
 );
 
 ALTER TABLE transactions ENABLE ROW LEVEL SECURITY;
@@ -81,14 +85,17 @@ CREATE POLICY "Allow all access to transactions"
 
 -- Create savings_goals table
 CREATE TABLE IF NOT EXISTS savings_goals (
-  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
-  user_id text NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  id uuid NOT NULL DEFAULT gen_random_uuid(),
+  user_id text NOT NULL,
   title text NOT NULL,
   target_amount numeric NOT NULL,
   target_date text NOT NULL,
   current_saved_amount numeric NOT NULL DEFAULT 0,
   rules jsonb NOT NULL DEFAULT '[]'::jsonb,
-  created_at timestamptz DEFAULT now()
+  created_at timestamp with time zone DEFAULT now(),
+  rules_en ARRAY,
+  CONSTRAINT savings_goals_pkey PRIMARY KEY (id),
+  CONSTRAINT savings_goals_user_id_fkey FOREIGN KEY (user_id) REFERENCES public.users(id)
 );
 
 ALTER TABLE savings_goals ENABLE ROW LEVEL SECURITY;
