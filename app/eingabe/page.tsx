@@ -13,6 +13,7 @@ import TransactionForm from '@/components/TransactionForm';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Progress } from '@/components/ui/progress';
+import { useI18n } from '@/hooks/useI18n';
 
 type BulkUploadResult = {
   success: boolean;
@@ -23,6 +24,7 @@ type BulkUploadResult = {
 };
 
 export default function EingabePage() {
+  const { t } = useI18n();
   const [uploading, setUploading] = useState(false);
   const [uploadSummary, setUploadSummary] = useState<BulkUploadResult | null>(null);
   const [fileName, setFileName] = useState('');
@@ -81,9 +83,14 @@ export default function EingabePage() {
   return (
     <div className="max-w-7xl mx-auto px-4 py-8 space-y-6">
       <div>
-        <h1 className="text-3xl font-bold text-gray-900 dark:text-gray-100">Transaktionen erfassen</h1>
+        <h1 className="text-3xl font-bold text-gray-900 dark:text-gray-100">
+          {t('eingabe.title', 'Transaktionen erfassen')}
+        </h1>
         <p className="text-gray-600 dark:text-gray-300 mt-1">
-          Einzelne Transaktionen manuell oder mehrere per CSV hochladen und automatisch klassifizieren lassen.
+          {t(
+            'eingabe.subtitle',
+            'Einzelne Transaktionen manuell oder mehrere per CSV hochladen und automatisch klassifizieren lassen.'
+          )}
         </p>
       </div>
 
@@ -100,7 +107,7 @@ export default function EingabePage() {
             <CardHeader>
               <CardTitle className="flex items-center space-x-2 text-gray-900 dark:text-gray-100">
                 <Upload className="w-5 h-5 text-blue-600" />
-                <span>CSV Upload</span>
+                <span>{t('eingabe.csv', 'CSV Upload')}</span>
               </CardTitle>
             </CardHeader>
             <CardContent className="space-y-4">
@@ -118,11 +125,18 @@ export default function EingabePage() {
                   <FileText className="w-6 h-6 text-blue-600" />
                 </div>
                 <div className="text-center">
-                  <p className="font-semibold text-gray-900">Datei auswählen</p>
+                  <p className="font-semibold text-gray-900">{t('eingabe.csv.drop', 'Datei auswählen')}</p>
                   <p className="text-sm text-gray-600">
-                    Unterstützt CSV mit Spalten: date, merchant, amount, rawCategory?, justification?
+                    {t(
+                      'eingabe.csv.hint',
+                      'Unterstützt CSV mit Spalten: date, merchant, amount, rawCategory?, justification?'
+                    )}
                   </p>
-                  {fileName && <p className="text-xs text-gray-500 mt-1">Ausgewählt: {fileName}</p>}
+                  {fileName && (
+                    <p className="text-xs text-gray-500 mt-1">
+                      {t('eingabe.csv.selected', 'Ausgewählt')}: {fileName}
+                    </p>
+                  )}
                 </div>
                 <input
                   type="file"
@@ -141,7 +155,7 @@ export default function EingabePage() {
                     triggerFileDialog();
                   }}
                 >
-                  {uploading ? 'Lade hoch...' : 'CSV hochladen'}
+                  {uploading ? t('eingabe.csv.uploading', 'Lade hoch...') : t('eingabe.csv', 'CSV hochladen')}
                 </Button>
               </div>
             </div>
@@ -168,13 +182,14 @@ export default function EingabePage() {
                   )}
                   <p className="font-semibold text-black">
                     {uploadSummary.success
-                      ? 'Upload erfolgreich verarbeitet'
-                      : 'Upload mit Fehlern'}
+                      ? t('eingabe.csv.success', 'Upload erfolgreich verarbeitet')
+                      : t('eingabe.csv.failed', 'Upload mit Fehlern')}
                   </p>
                 </div>
                 <p className="text-sm text-black mt-1">
-                  {uploadSummary.succeeded} von {uploadSummary.processed} Zeilen gespeichert,{' '}
-                  {uploadSummary.failed} fehlgeschlagen.
+                  {uploadSummary.succeeded} {t('eingabe.csv.success', 'erfolgreich')} / {uploadSummary.processed}{' '}
+                  {t('eingabe.csv.processed', 'verarbeitet')}, {uploadSummary.failed}{' '}
+                  {t('eingabe.csv.failed', 'fehlgeschlagen')}.
                 </p>
                 {uploadSummary.errors && uploadSummary.errors.length > 0 && (
                   <ul className="mt-2 space-y-1 text-xs text-gray-600 list-disc list-inside">
@@ -190,7 +205,7 @@ export default function EingabePage() {
             )}
 
             <div className="text-xs text-gray-500">
-              Beispiel CSV:
+              {t('eingabe.csv.example', 'Beispiel CSV')}:
               <pre className="mt-2 bg-white dark:bg-gray-800 p-3 rounded border border-gray-200 dark:border-gray-700 text-[11px] overflow-x-auto">
 date,merchant,amount,rawCategory,justification
 2025-02-10,Coop,45.20,Lebensmittel,Wocheneinkauf
@@ -203,7 +218,7 @@ date,merchant,amount,rawCategory,justification
 
       {manualSaved && (
         <div className="p-3 bg-green-50 border border-green-200 rounded text-sm text-green-800">
-          Transaktion gespeichert und klassifiziert.
+          {t('eingabe.manual.saved', 'Transaktion gespeichert und klassifiziert.')}
         </div>
       )}
     </div>

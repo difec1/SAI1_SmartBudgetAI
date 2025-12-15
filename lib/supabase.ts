@@ -101,6 +101,7 @@ export async function getTransactions(userId: string): Promise<Transaction[]> {
     isImpulse: row.is_impulse,
     decisionLabel: row.decision_label as 'useful' | 'unnecessary',
     decisionExplanation: row.decision_explanation,
+    decisionExplanationEn: row.decision_explanation_en,
   }));
 }
 
@@ -119,6 +120,7 @@ export async function createTransaction(transaction: Transaction): Promise<Trans
       is_impulse: transaction.isImpulse,
       decision_label: transaction.decisionLabel,
       decision_explanation: transaction.decisionExplanation,
+      decision_explanation_en: transaction.decisionExplanationEn,
     })
     .select()
     .single();
@@ -137,6 +139,7 @@ export async function createTransaction(transaction: Transaction): Promise<Trans
     isImpulse: data.is_impulse,
     decisionLabel: data.decision_label as 'useful' | 'unnecessary',
     decisionExplanation: data.decision_explanation,
+    decisionExplanationEn: data.decision_explanation_en,
   };
 }
 
@@ -145,10 +148,11 @@ export async function updateTransactionCategory(params: {
   category: string;
   decisionLabel?: 'useful' | 'unnecessary';
   decisionExplanation?: string;
+   decisionExplanationEn?: string;
   isImpulse?: boolean;
   rawCategory?: string;
 }): Promise<Transaction> {
-  const { transactionId, category, decisionLabel, decisionExplanation, isImpulse, rawCategory } = params;
+  const { transactionId, category, decisionLabel, decisionExplanation, decisionExplanationEn, isImpulse, rawCategory } = params;
 
   const { data, error } = await supabase
     .from('transactions')
@@ -156,6 +160,7 @@ export async function updateTransactionCategory(params: {
       category,
       decision_label: decisionLabel,
       decision_explanation: decisionExplanation,
+      decision_explanation_en: decisionExplanationEn,
       is_impulse: isImpulse,
       raw_category: rawCategory,
     })
@@ -177,6 +182,7 @@ export async function updateTransactionCategory(params: {
     isImpulse: data.is_impulse,
     decisionLabel: data.decision_label as 'useful' | 'unnecessary',
     decisionExplanation: data.decision_explanation,
+    decisionExplanationEn: data.decision_explanation_en,
   };
 }
 
@@ -229,6 +235,7 @@ export async function getSavingsGoals(userId: string): Promise<SavingsGoal[]> {
     targetDate: row.target_date,
     currentSavedAmount: parseFloat(row.current_saved_amount),
     rules: row.rules as string[],
+    rulesEn: row.rules_en as string[] | undefined,
   }));
 }
 
@@ -243,6 +250,7 @@ export async function createSavingsGoal(goal: SavingsGoal): Promise<SavingsGoal>
       target_date: goal.targetDate,
       current_saved_amount: goal.currentSavedAmount,
       rules: goal.rules,
+      rules_en: goal.rulesEn,
     })
     .select()
     .single();
@@ -257,6 +265,7 @@ export async function createSavingsGoal(goal: SavingsGoal): Promise<SavingsGoal>
     targetDate: data.target_date,
     currentSavedAmount: parseFloat(data.current_saved_amount),
     rules: data.rules as string[],
+    rulesEn: data.rules_en as string[] | undefined,
   };
 }
 
@@ -283,13 +292,14 @@ export async function updateSavingsGoalAmount(goalId: string, newAmount: number)
     targetDate: data.target_date,
     currentSavedAmount: parseFloat(data.current_saved_amount),
     rules: data.rules as string[],
+    rulesEn: data.rules_en as string[] | undefined,
   };
 }
 
-export async function updateSavingsGoalRules(goalId: string, rules: string[]): Promise<SavingsGoal> {
+export async function updateSavingsGoalRules(goalId: string, rules: string[], rulesEn?: string[]): Promise<SavingsGoal> {
   const { data, error } = await supabase
     .from('savings_goals')
-    .update({ rules })
+    .update({ rules, rules_en: rulesEn })
     .eq('id', goalId)
     .select()
     .single();
@@ -304,6 +314,7 @@ export async function updateSavingsGoalRules(goalId: string, rules: string[]): P
     targetDate: data.target_date,
     currentSavedAmount: parseFloat(data.current_saved_amount),
     rules: data.rules as string[],
+    rulesEn: data.rules_en as string[] | undefined,
   };
 }
 
@@ -333,6 +344,46 @@ export async function markSavingsGoalComplete(goalId: string): Promise<SavingsGo
     targetDate: updated.target_date,
     currentSavedAmount: parseFloat(updated.current_saved_amount),
     rules: updated.rules as string[],
+    rulesEn: updated.rules_en as string[] | undefined,
+  };
+}
+
+export async function updateSavingsGoal(
+  goalId: string,
+  payload: {
+    title?: string;
+    targetAmount?: number;
+    targetDate?: string;
+    rules?: string[];
+    rulesEn?: string[];
+  }
+): Promise<SavingsGoal> {
+  // Build a sparse update object so we only touch provided fields
+  const updateData: any = {};
+  if (payload.title !== undefined) updateData.title = payload.title;
+  if (payload.targetAmount !== undefined) updateData.target_amount = payload.targetAmount;
+  if (payload.targetDate !== undefined) updateData.target_date = payload.targetDate;
+  if (payload.rules !== undefined) updateData.rules = payload.rules;
+  if (payload.rulesEn !== undefined) updateData.rules_en = payload.rulesEn;
+
+  const { data, error } = await supabase
+    .from('savings_goals')
+    .update(updateData)
+    .eq('id', goalId)
+    .select()
+    .single();
+
+  if (error) throw error;
+
+  return {
+    id: data.id,
+    userId: data.user_id,
+    title: data.title,
+    targetAmount: parseFloat(data.target_amount),
+    targetDate: data.target_date,
+    currentSavedAmount: parseFloat(data.current_saved_amount),
+    rules: data.rules as string[],
+    rulesEn: data.rules_en as string[] | undefined,
   };
 }
 

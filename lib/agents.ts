@@ -200,9 +200,14 @@ Analysiere die Nachricht des Nutzers und extrahiere:
 1. goalTitle: Ein kurzer, prägnanter Titel für das Sparziel (z.B. "Thailand Ferien", "Neues Auto")
 2. targetAmount: Den Zielbetrag in CHF (als Zahl)
 3. targetDate: Das Zieldatum im Format YYYY-MM-DD
-4. rules: 3-4 konkrete Verhaltensregeln, die dem Nutzer helfen, das Ziel zu erreichen
+4. rules: 3-4 konkrete, messbare Verhaltensregeln, die dem Nutzer helfen, das Ziel zu erreichen
 
-Die Regeln sollen spezifisch, messbar und realistisch sein. Beispiele:
+Wichtig für die Regeln:
+- Berechne den erforderlichen monatlichen Sparbetrag exakt: targetAmount / Anzahl voller Monate bis targetDate (mindestens 1 Monat). Runde auf 2 Nachkommastellen, formatiere in CHF.
+- Erste Regel muss sein: "Jeden Monat X CHF aufs Sparkonto überweisen" mit dem berechneten X.
+- Weitere Regeln sollen sinnvoll unterstützen (Ausgabenlimits, 24h-Bedenkzeit etc.).
+
+Beispiele für Regeln:
 - "Shopping maximal 300 CHF pro Monat"
 - "Food Delivery maximal 2x pro Woche"
 - "Vor jedem Kauf über 100 CHF: 24h Bedenkzeit"
@@ -307,7 +312,15 @@ export async function budgetPlannerAgent(input: BudgetPlannerInput): Promise<Bud
     .sort((a, b) => b.amount - a.amount);
 
   // Detect patterns and generate nudges (nur Ausgaben, zeitraumabhängig)
-  const patterns = detectPatterns(expenseTransactions, timeframe);
+  const patterns = detectPatterns({
+    transactions: expenseTransactions,
+    timeframe,
+    budget: scopedBudget,
+    usedBudget,
+    startDate,
+    endDate,
+    month,
+  });
 
   return {
     monthlyBudget: scopedBudget,
@@ -321,14 +334,122 @@ export async function budgetPlannerAgent(input: BudgetPlannerInput): Promise<Bud
 /**
  * Detect spending patterns and generate behavioral nudges
  */
-function detectPatterns(transactions: Transaction[], timeframe: 'month' | 'year' | 'custom'): string[] {
+type PatternInput = {
+  transactions: Transaction[];
+  timeframe: 'month' | 'year' | 'custom';
+  budget?: number;
+  usedBudget?: number;
+  startDate?: string;
+  endDate?: string;
+  month?: string;
+};
+
+function detectPatterns(input: PatternInput): string[] {
+  const { transactions, timeframe, budget, usedBudget, startDate, endDate, month } = input;
   const patterns: string[] = [];
 
   if (transactions.length === 0) {
     return ['Noch keine Ausgaben für diesen Zeitraum.'];
   }
 
-  // Pattern 1: Most expensive day of week (average per day)
+  const absAmount = (t: Transaction) => Math.abs(t.amount);
+  const totalSpent = transactions.reduce((sum, t) => sum + absAmount(t), 0);
+
+  // Scope dates for rate/prognosis
+  const scopeStart = (() => {
+    if (timeframe === 'custom' && startDate) return new Date(startDate);
+    if (timeframe === 'year' && month) return new Date(`${month.slice(0, 4)}-01-01`);
+    if (month) return new Date(`${month}-01`);
+    return new Date(transactions[0].date);
+  })();
+  const scopeEnd = (() => {
+    if (timeframe === 'custom' && endDate) return new Date(endDate);
+    if (timeframe === 'year' && month) return new Date(`${month.slice(0, 4)}-12-31`);
+    if (month) {
+      const d = new Date(`${month}-01`);
+      return new Date(d.getFullYear(), d.getMonth() + 1, 0);
+    }
+    return new Date(transactions[transactions.length - 1].date);
+  })();
+  const totalDays = Math.max(1, Math.ceil((scopeEnd.getTime() - scopeStart.getTime()) / (1000 * 60 * 60 * 24)) + 1);
+  const now = new Date();
+  const elapsedDays = Math.min(
+    totalDays,
+    Math.max(1, Math.ceil((now.getTime() - scopeStart.getTime()) / (1000 * 60 * 60 * 24)) + 1)
+  );
+
+  // Pattern: Top category share
+  const categoryMap = new Map<string, number>();
+  transactions.forEach((t) => {
+    categoryMap.set(t.category, (categoryMap.get(t.category) || 0) + absAmount(t));
+  });
+  if (categoryMap.size > 0) {
+    const [topCategory, topAmount] = Array.from(categoryMap.entries()).sort((a, b) => b[1] - a[1])[0];
+    const percentage = totalSpent > 0 ? Math.round((topAmount / totalSpent) * 100) : 0;
+    patterns.push(`${topCategory} macht ${percentage}% deiner Ausgaben aus (${Math.round(topAmount)} CHF).`);
+  }
+
+  // Pattern: Budget pace / overrun risk (only if budget provided)
+  if (budget && budget > 0 && usedBudget !== undefined) {
+    const elapsedShare = elapsedDays / totalDays;
+    const expectedSpend = budget * elapsedShare;
+    if (usedBudget > expectedSpend * 1.1) {
+      const projected = (usedBudget / elapsedShare) * 1.0;
+      patterns.push(
+        `Budgetwarnung: Du liegst über Plan. Hochrechnung: ~${projected.toFixed(0)} CHF vs. Budget ${budget.toFixed(
+          0
+        )} CHF.`
+      );
+    } else if (usedBudget < expectedSpend * 0.8) {
+      patterns.push('Gute Pace: Du liegst unter deinem geplanten Budget-Verlauf.');
+    }
+  }
+
+  // Pattern: Spending trend within period (first vs. second half)
+  const midTimestamp = scopeStart.getTime() + (scopeEnd.getTime() - scopeStart.getTime()) / 2;
+  const firstHalf = transactions
+    .filter((t) => new Date(t.date).getTime() <= midTimestamp)
+    .reduce((sum, t) => sum + absAmount(t), 0);
+  const secondHalf = totalSpent - firstHalf;
+  if (firstHalf > 0 && secondHalf > firstHalf * 1.2) {
+    patterns.push('Deine Ausgaben steigen in der zweiten Hälfte des Zeitraums. Prüfe wiederkehrende Käufe.');
+  } else if (secondHalf > 0 && firstHalf > secondHalf * 1.2) {
+    patterns.push('Deine Ausgaben waren zu Beginn des Zeitraums höher. Gut, dass du zuletzt sparsamer warst.');
+  }
+
+  // Pattern: Impulse rate
+  const impulseTransactions = transactions.filter((t) => t.isImpulse);
+  if (impulseTransactions.length > 0) {
+    const impulseRate = Math.round((impulseTransactions.length / transactions.length) * 100);
+    patterns.push(`${impulseRate}% deiner Käufe sind Impulskäufe. Versuche, vor dem Kauf eine Pause einzulegen.`);
+  }
+
+  // Pattern: Recurring/consistent payments (likely subscriptions)
+  const merchantMap = new Map<string, { count: number; total: number; amounts: number[] }>();
+  transactions.forEach((t) => {
+    const entry = merchantMap.get(t.merchant) || { count: 0, total: 0, amounts: [] };
+    entry.count += 1;
+    entry.total += absAmount(t);
+    entry.amounts.push(absAmount(t));
+    merchantMap.set(t.merchant, entry);
+  });
+  const recurring = Array.from(merchantMap.entries())
+    .filter(([_, v]) => v.count >= 3)
+    .map(([merchant, v]) => {
+      const avg = v.total / v.count;
+      const max = Math.max(...v.amounts);
+      const min = Math.min(...v.amounts);
+      const varianceRatio = avg > 0 ? (max - min) / avg : 1;
+      return { merchant, count: v.count, avg, varianceRatio };
+    })
+    .filter((r) => r.varianceRatio <= 0.3)
+    .sort((a, b) => b.avg * b.count - a.avg * a.count);
+  if (recurring.length > 0) {
+    const r = recurring[0];
+    patterns.push(`Wiederkehrende Zahlungen: ${r.merchant} (${r.count}x, Ø ${r.avg.toFixed(2)} CHF). Prüfe, ob du das Abo brauchst.`);
+  }
+
+  // Pattern: Most expensive day of week (average per day)
   const daySpending = new Map<string, { total: number; count: number }>();
   const dayNames = ['Sonntag', 'Montag', 'Dienstag', 'Mittwoch', 'Donnerstag', 'Freitag', 'Samstag'];
 
@@ -336,42 +457,13 @@ function detectPatterns(transactions: Transaction[], timeframe: 'month' | 'year'
     const date = new Date(t.date);
     const day = dayNames[date.getDay()];
     const current = daySpending.get(day) || { total: 0, count: 0 };
-    daySpending.set(day, { total: current.total + t.amount, count: current.count + 1 });
+    daySpending.set(day, { total: current.total + absAmount(t), count: current.count + 1 });
   });
 
   if (daySpending.size > 0) {
     const [mostExpensiveDay, stats] = Array.from(daySpending.entries()).sort((a, b) => b[1].total - a[1].total)[0];
     const average = stats.total / stats.count;
     patterns.push(`${mostExpensiveDay} ist dein teuerster Tag (Durchschnitt ${average.toFixed(2)} CHF).`);
-  }
-
-  // Pattern 2: Impulse purchases timing
-  const impulseTransactions = transactions.filter((t) => t.isImpulse);
-  const lateNightImpulses = impulseTransactions.filter((t) => {
-    const date = new Date(t.date);
-    const hour = date.getHours();
-    return hour >= 22 || hour <= 2;
-  });
-
-  if (impulseTransactions.length > 0) {
-    const impulseRate = Math.round((impulseTransactions.length / transactions.length) * 100);
-    patterns.push(`${impulseRate}% deiner Käufe sind Impulskäufe. Versuche, vor dem Kauf eine Pause einzulegen.`);
-  }
-
-  if (lateNightImpulses.length >= 2) {
-    patterns.push('Zwischen 22:00 und 02:00 machst du viele Impulskäufe. Vielleicht hilft eine "Kaufsperre" nach 22 Uhr?');
-  }
-
-  // Pattern 3: Top spending category
-  const categoryMap = new Map<string, number>();
-  transactions.forEach((t) => {
-    categoryMap.set(t.category, (categoryMap.get(t.category) || 0) + t.amount);
-  });
-
-  if (categoryMap.size > 0) {
-    const [topCategory, topAmount] = Array.from(categoryMap.entries()).sort((a, b) => b[1] - a[1])[0];
-    const percentage = Math.round((topAmount / transactions.reduce((sum, t) => sum + t.amount, 0)) * 100);
-    patterns.push(`${topCategory} macht ${percentage}% deiner Ausgaben aus (${Math.round(topAmount)} CHF).`);
   }
 
   return patterns.slice(0, 3); // Return top 3 patterns

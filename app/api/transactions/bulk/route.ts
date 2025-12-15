@@ -7,6 +7,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { dataExtractionAgent, impulseClassificationAgent } from '@/lib/agents';
 import { createTransaction } from '@/lib/supabase';
 import type { DataExtractionInput, Transaction } from '@/lib/types';
+import { translateToEnglish } from '@/lib/translate';
 
 type CsvRow = Partial<DataExtractionInput>;
 
@@ -52,12 +53,20 @@ export async function POST(request: NextRequest) {
 
         const classification = await impulseClassificationAgent({ transaction: extracted });
 
+        let decisionExplanationEn: string | undefined;
+        try {
+          decisionExplanationEn = await translateToEnglish(classification.decisionExplanation);
+        } catch (err) {
+          console.error('Bulk translation failed:', err);
+        }
+
         const finalTransaction: Transaction = {
           ...extracted,
           category: classification.category,
           isImpulse: classification.isImpulse,
           decisionLabel: classification.decisionLabel,
           decisionExplanation: classification.decisionExplanation,
+          decisionExplanationEn,
         };
 
         await createTransaction(finalTransaction);

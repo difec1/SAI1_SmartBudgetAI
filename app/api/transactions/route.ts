@@ -14,6 +14,7 @@ import {
 } from '@/lib/supabase';
 import { dataExtractionAgent, impulseClassificationAgent } from '@/lib/agents';
 import type { DataExtractionInput, Transaction } from '@/lib/types';
+import { translateTexts, translateToEnglish } from '@/lib/translate';
 
 /**
  * GET /api/transactions
@@ -79,6 +80,13 @@ export async function POST(request: NextRequest) {
       transaction: extractedTransaction,
     });
 
+    let decisionExplanationEn: string | undefined;
+    try {
+      decisionExplanationEn = await translateToEnglish(classification.decisionExplanation);
+    } catch (err) {
+      console.error('Translation failed for decision explanation:', err);
+    }
+
     // Step 3: Combine and create final transaction
     const finalTransaction: Transaction = {
       ...extractedTransaction,
@@ -86,6 +94,7 @@ export async function POST(request: NextRequest) {
       isImpulse: classification.isImpulse,
       decisionLabel: classification.decisionLabel,
       decisionExplanation: classification.decisionExplanation,
+      decisionExplanationEn,
     };
 
     // Override for income-like transactions: treat as Einnahmen (positive inflow)
@@ -94,6 +103,7 @@ export async function POST(request: NextRequest) {
       finalTransaction.isImpulse = false;
       finalTransaction.decisionLabel = 'useful';
       finalTransaction.decisionExplanation = 'Einnahme verbucht (z.B. Lohn/Salär).';
+      finalTransaction.decisionExplanationEn = 'Income recorded (e.g., salary).';
     }
 
     // Step 4: Store in database (Strapi would handle this in the future)

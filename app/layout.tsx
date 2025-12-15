@@ -2,6 +2,7 @@ import "./globals.css";
 import type { Metadata } from "next";
 import { Inter } from "next/font/google";
 import Navigation from "@/components/Navigation";
+import { I18nProvider } from "@/hooks/useI18n";
 
 const inter = Inter({ subsets: ["latin"] });
 
@@ -18,8 +19,10 @@ export default function RootLayout({
   return (
     <html lang="de">
       <body className={`${inter.className} bg-gray-50 dark:bg-gray-900 text-gray-900 dark:text-gray-50`}>
-        <Navigation />
-        <main className="min-h-screen bg-gray-50 dark:bg-gray-900">{children}</main>
+        <I18nProvider>
+          <Navigation />
+          <main className="min-h-screen bg-gray-50 dark:bg-gray-900">{children}</main>
+        </I18nProvider>
       </body>
     </html>
   );

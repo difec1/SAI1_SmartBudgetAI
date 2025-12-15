@@ -4,10 +4,12 @@ import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { useEffect, useState } from 'react';
 import { Target, BarChart3, History, PlusSquare, Moon, Sun } from 'lucide-react';
+import { useI18n } from '@/hooks/useI18n';
 
 export default function Navigation() {
   const pathname = usePathname();
   const [theme, setTheme] = useState<'light' | 'dark'>('light');
+  const { lang, toggleLanguage, t } = useI18n();
 
   useEffect(() => {
     const saved = typeof window !== 'undefined' ? localStorage.getItem('theme') : null;
@@ -34,10 +36,10 @@ export default function Navigation() {
   };
 
   const navItems = [
-    { href: '/', label: 'Sparziele', icon: Target },
-    { href: '/analyse', label: 'Analyse', icon: BarChart3 },
-    { href: '/verlauf', label: 'Verlauf', icon: History },
-    { href: '/eingabe', label: 'Eingabe', icon: PlusSquare },
+    { href: '/', label: t('nav.goals', 'Sparziele'), icon: Target },
+    { href: '/analyse', label: t('nav.analysis', 'Analyse'), icon: BarChart3 },
+    { href: '/verlauf', label: t('nav.history', 'Verlauf'), icon: History },
+    { href: '/eingabe', label: t('nav.input', 'Eingabe'), icon: PlusSquare },
   ];
 
   return (
@@ -74,6 +76,14 @@ export default function Navigation() {
                 </Link>
               );
             })}
+            <button
+              onClick={toggleLanguage}
+              className="inline-flex items-center justify-center rounded-lg px-3 py-2 text-gray-600 hover:bg-gray-50 hover:text-gray-900 dark:text-gray-200 dark:hover:bg-gray-800"
+              aria-label={t('nav.switchLang', 'Sprache')}
+              type="button"
+            >
+              <span className="text-sm font-semibold">{lang === 'de' ? 'EN' : 'DE'}</span>
+            </button>
             <button
               onClick={toggleTheme}
               className="ml-3 inline-flex items-center justify-center rounded-lg p-2 text-gray-600 hover:bg-gray-50 hover:text-gray-900 dark:text-gray-200 dark:hover:bg-gray-800"

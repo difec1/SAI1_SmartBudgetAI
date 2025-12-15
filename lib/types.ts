@@ -22,6 +22,7 @@ export interface Transaction {
   isImpulse: boolean;
   decisionLabel: 'useful' | 'unnecessary';
   decisionExplanation: string; // AI-generated explanation in German
+  decisionExplanationEn?: string; // Stored English explanation
 }
 
 export interface SavingsGoal {
@@ -32,6 +33,7 @@ export interface SavingsGoal {
   targetDate: string; // ISO date string
   currentSavedAmount: number;
   rules: string[]; // Concrete behavior rules in German
+  rulesEn?: string[]; // Stored English rules
 }
 
 export interface BudgetSummary {
